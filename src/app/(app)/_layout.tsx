@@ -36,6 +36,7 @@ export default function AppLayout() {
           name="task/new"
           options={{ title: 'Nowe zadanie', presentation: 'modal' }}
         />
+        <Stack.Screen name="task/[id]" options={{ title: 'Zadanie', presentation: 'modal' }} />
         <Stack.Screen
           name="group/invite"
           options={{ title: 'Zaproś do grupy', presentation: 'modal' }}
