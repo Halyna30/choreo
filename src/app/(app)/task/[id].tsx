@@ -1,7 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Divider, HelperText, SegmentedButtons, Text } from 'react-native-paper';
+import { Button, Card, Divider, HelperText, SegmentedButtons, Text } from 'react-native-paper';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { useAuth } from '../../../features/auth/AuthProvider';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
@@ -11,11 +11,13 @@ import { formatFullDate } from '../../../features/tasks/dates';
 import {
   useDeleteTask,
   useTask,
+  useTemplate,
   useUpdateTask,
   useUpdateTaskStatus,
 } from '../../../features/tasks/hooks';
 import { STATUS_META } from '../../../features/tasks/status';
 import type { TaskStatus } from '../../../features/tasks/types';
+import { describeWeekdays } from '../../../features/tasks/weekdays';
 import { toUserMessage } from '../../../lib/errors';
 
 const STATUSES: TaskStatus[] = ['todo', 'in_progress', 'done'];
@@ -27,6 +29,7 @@ export default function TaskDetailScreen() {
   const groupId = membership?.group_id;
 
   const { data: task, isLoading } = useTask(id);
+  const { data: template } = useTemplate(task?.template_id);
   const { data: members } = useGroupMembers(groupId);
   const updateStatus = useUpdateTaskStatus(groupId);
   const updateTask = useUpdateTask(groupId);
@@ -48,6 +51,7 @@ export default function TaskDetailScreen() {
   const isManager = canManageTasks(membership?.role);
   const canChangeStatus = isManager || task.assigned_to === session?.user.id;
   const assignee = members?.find((member) => member.user_id === task.assigned_to);
+  const isRecurring = Boolean(task.template_id);
   const error = updateStatus.error ?? updateTask.error ?? deleteTask.error;
 
   return (
@@ -68,6 +72,37 @@ export default function TaskDetailScreen() {
         {error ? toUserMessage(error) : null}
       </HelperText>
 
+      {isRecurring ? (
+        <Card mode="contained">
+          <Card.Content style={styles.recurring}>
+            <Text variant="titleSmall">
+              🔁 Zadanie cykliczne{template ? `: ${describeWeekdays(template.weekdays)}` : ''}
+            </Text>
+            {isManager ? (
+              <Text variant="bodySmall">
+                Zmiany poniżej dotyczą tylko tego dnia. Aby zmienić wszystkie kolejne dni, edytuj
+                powtarzanie.
+              </Text>
+            ) : null}
+          </Card.Content>
+          {isManager && task.template_id ? (
+            <Card.Actions>
+              <Button
+                icon="repeat"
+                onPress={() =>
+                  router.push({
+                    pathname: '/template/[id]',
+                    params: { id: task.template_id as string },
+                  })
+                }
+              >
+                Edytuj powtarzanie
+              </Button>
+            </Card.Actions>
+          ) : null}
+        </Card>
+      ) : null}
+
       <Divider />
 
       {isManager && members ? (
@@ -79,8 +114,11 @@ export default function TaskDetailScreen() {
             description: task.description ?? '',
             assignedTo: task.assigned_to,
             dueDate: task.due_date,
+            repeat: 'none',
+            weekdays: [],
           }}
           members={members}
+          repeatMode="hidden"
           submitLabel="Zapisz zmiany"
           loading={updateTask.isPending}
           onSubmit={(values) =>
@@ -109,15 +147,19 @@ export default function TaskDetailScreen() {
         <>
           <Divider style={styles.divider} />
           <Button mode="outlined" icon="delete-outline" onPress={() => setConfirmVisible(true)}>
-            Usuń zadanie
+            {isRecurring ? 'Usuń z tego dnia' : 'Usuń zadanie'}
           </Button>
         </>
       ) : null}
 
       <ConfirmDialog
         visible={confirmVisible}
-        title="Usunąć zadanie?"
-        message={`Zadanie „${task.title}” zostanie usunięte na stałe.`}
+        title={isRecurring ? 'Usunąć zadanie z tego dnia?' : 'Usunąć zadanie?'}
+        message={
+          isRecurring
+            ? `„${task.title}” zniknie tylko z ${formatFullDate(task.due_date)}. Pozostałe dni serii zostaną bez zmian.`
+            : `Zadanie „${task.title}” zostanie usunięte na stałe.`
+        }
         confirmLabel="Usuń"
         destructive
         loading={deleteTask.isPending}
@@ -138,6 +180,7 @@ export default function TaskDetailScreen() {
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 8 },
   details: { gap: 8 },
+  recurring: { gap: 4 },
   divider: { marginVertical: 8 },
   loader: { marginTop: 32 },
 });

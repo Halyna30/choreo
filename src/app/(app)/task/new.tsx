@@ -5,7 +5,9 @@ import { useCurrentMembership, useGroupMembers } from '../../../features/groups/
 import { canManageTasks } from '../../../features/groups/roles';
 import { TaskForm } from '../../../features/tasks/components/TaskForm';
 import { todayKey } from '../../../features/tasks/dates';
-import { useCreateTask } from '../../../features/tasks/hooks';
+import { useCreateTask, useCreateTemplate } from '../../../features/tasks/hooks';
+import type { TaskFormValues } from '../../../features/tasks/types';
+import { isoWeekday, weekdaysFromForm } from '../../../features/tasks/weekdays';
 import { toUserMessage } from '../../../lib/errors';
 
 export default function NewTaskScreen() {
@@ -14,6 +16,7 @@ export default function NewTaskScreen() {
   const groupId = membership?.group_id;
   const { data: members, isLoading } = useGroupMembers(groupId);
   const createTask = useCreateTask(groupId);
+  const createTemplate = useCreateTemplate(groupId);
 
   if (!canManageTasks(membership?.role)) {
     return (
@@ -27,6 +30,40 @@ export default function NewTaskScreen() {
     return <ActivityIndicator style={styles.loader} />;
   }
 
+  const startDate = date ?? todayKey();
+  const error = createTask.error ?? createTemplate.error;
+
+  function handleSubmit(values: TaskFormValues) {
+    if (!groupId) return;
+    const onSuccess = () => router.back();
+
+    if (values.repeat === 'none') {
+      createTask.mutate(
+        {
+          groupId,
+          title: values.title,
+          description: values.description,
+          assignedTo: values.assignedTo,
+          dueDate: values.dueDate,
+        },
+        { onSuccess },
+      );
+    } else {
+      // Zadanie cykliczne: zapisujemy szablon, a zadania na dni utworzy baza
+      createTemplate.mutate(
+        {
+          groupId,
+          title: values.title,
+          description: values.description,
+          assignedTo: values.assignedTo,
+          weekdays: weekdaysFromForm(values),
+          startDate: values.dueDate,
+        },
+        { onSuccess },
+      );
+    }
+  }
+
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <TaskForm
@@ -35,24 +72,16 @@ export default function NewTaskScreen() {
           description: '',
           // jeśli w grupie jest tylko jedna osoba, wybieramy ją od razu
           assignedTo: members.length === 1 ? members[0].user_id : '',
-          dueDate: date ?? todayKey(),
+          dueDate: startDate,
+          repeat: 'none',
+          weekdays: [isoWeekday(startDate)],
         }}
         members={members}
+        repeatMode="optional"
         submitLabel="Dodaj zadanie"
-        loading={createTask.isPending}
-        serverError={createTask.error ? toUserMessage(createTask.error) : null}
-        onSubmit={(values) =>
-          createTask.mutate(
-            {
-              groupId,
-              title: values.title,
-              description: values.description,
-              assignedTo: values.assignedTo,
-              dueDate: values.dueDate,
-            },
-            { onSuccess: () => router.back() },
-          )
-        }
+        loading={createTask.isPending || createTemplate.isPending}
+        serverError={error ? toUserMessage(error) : null}
+        onSubmit={handleSubmit}
       />
     </ScrollView>
   );

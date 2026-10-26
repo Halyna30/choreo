@@ -70,6 +70,10 @@ export default function ProfileScreen() {
         </Button>
       ) : null}
 
+      <Button mode="contained-tonal" icon="repeat" onPress={() => router.push('/templates')}>
+        Zadania cykliczne
+      </Button>
+
       <Button
         mode="outlined"
         icon="logout"

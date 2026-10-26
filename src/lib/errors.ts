@@ -13,8 +13,11 @@ export function toUserMessage(error: unknown): string {
   if (lower.includes('network') || lower.includes('failed to fetch')) {
     return 'Brak połączenia z internetem.';
   }
+  if (lower.includes('tasks_template_day_unique')) {
+    return 'Na ten dzień jest już to zadanie z serii.';
+  }
   if (lower.includes('violates check constraint')) {
-    return 'Nieprawidłowe dane. Sprawdź długość pól.';
+    return 'Nieprawidłowe dane. Sprawdź pola formularza.';
   }
   return message || 'Coś poszło nie tak. Spróbuj ponownie.';
 }

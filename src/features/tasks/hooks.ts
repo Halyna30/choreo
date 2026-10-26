@@ -3,11 +3,16 @@ import { useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
   createTask,
+  createTemplate,
   deleteTask,
+  deleteTemplate,
   fetchTask,
   fetchTasksForDay,
+  fetchTemplate,
+  fetchTemplates,
   updateTask,
   updateTaskStatus,
+  updateTemplate,
 } from './api';
 import type { Task } from './types';
 
@@ -16,6 +21,13 @@ export const taskKeys = {
   day: (groupId?: string, date?: string) => ['tasks', groupId, date] as const,
   detail: (taskId?: string) => ['task', taskId] as const,
 };
+
+export const templateKeys = {
+  list: (groupId?: string) => ['templates', groupId] as const,
+  detail: (templateId?: string) => ['template', templateId] as const,
+};
+
+// ---------- Zadania ----------
 
 export function useTasksForDay(groupId: string | undefined, date: string) {
   return useQuery({
@@ -106,6 +118,67 @@ export function useUpdateTaskStatus(groupId: string | undefined) {
     onSettled: (_data, _error, variables) => invalidate(variables.id),
   });
 }
+
+// ---------- Szablony zadań cyklicznych ----------
+
+export function useTemplates(groupId: string | undefined) {
+  return useQuery({
+    queryKey: templateKeys.list(groupId),
+    queryFn: () => fetchTemplates(groupId as string),
+    enabled: Boolean(groupId),
+  });
+}
+
+export function useTemplate(templateId: string | null | undefined) {
+  return useQuery({
+    queryKey: templateKeys.detail(templateId ?? undefined),
+    queryFn: () => fetchTemplate(templateId as string),
+    enabled: Boolean(templateId),
+  });
+}
+
+// Zmiana szablonu zmienia też przyszłe zadania, więc odświeżamy obie listy
+function useInvalidateTemplates(groupId: string | undefined) {
+  const queryClient = useQueryClient();
+  return async (templateId?: string) => {
+    await queryClient.invalidateQueries({ queryKey: templateKeys.list(groupId) });
+    if (templateId) {
+      await queryClient.invalidateQueries({ queryKey: templateKeys.detail(templateId) });
+    }
+    await queryClient.invalidateQueries({ queryKey: taskKeys.group(groupId) });
+    await queryClient.invalidateQueries({ queryKey: ['task'] });
+  };
+}
+
+export function useCreateTemplate(groupId: string | undefined) {
+  const invalidate = useInvalidateTemplates(groupId);
+  return useMutation({
+    mutationFn: createTemplate,
+    onSuccess: () => invalidate(),
+  });
+}
+
+export function useUpdateTemplate(groupId: string | undefined) {
+  const invalidate = useInvalidateTemplates(groupId);
+  return useMutation({
+    mutationFn: updateTemplate,
+    onSuccess: (_data, variables) => invalidate(variables.id),
+  });
+}
+
+export function useDeleteTemplate(groupId: string | undefined) {
+  const queryClient = useQueryClient();
+  const invalidate = useInvalidateTemplates(groupId);
+  return useMutation({
+    mutationFn: deleteTemplate,
+    onSuccess: async (_data, templateId) => {
+      queryClient.removeQueries({ queryKey: templateKeys.detail(templateId) });
+      await invalidate();
+    },
+  });
+}
+
+// ---------- Realtime ----------
 
 // Nasłuchuje zmian w zadaniach grupy (Supabase Realtime).
 // Gdy ktoś doda zadanie albo zmieni status, odświeżamy listy.

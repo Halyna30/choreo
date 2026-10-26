@@ -23,10 +23,12 @@ export function TaskItem({ task, subtitle, canChangeStatus, onChangeStatus, onPr
         ? theme.colors.secondary
         : theme.colors.onSurfaceVariant;
 
+  const description = `${task.template_id ? '🔁 ' : ''}${subtitle ?? meta.label}`;
+
   return (
     <List.Item
       title={task.title}
-      description={subtitle ?? meta.label}
+      description={description}
       onPress={onPress}
       titleStyle={isDone ? [styles.doneTitle, { color: theme.colors.onSurfaceVariant }] : undefined}
       titleNumberOfLines={2}
