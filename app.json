@@ -22,8 +22,8 @@
       "package": "com.halynapryn.choreo"
     },
     "web": {
-      "output": "server",
-      "favicon": "./assets/images/favicon.png"
+      "output": "single",
+  "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
