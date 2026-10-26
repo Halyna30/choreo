@@ -2,8 +2,8 @@ import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, Text, TextInput } from 'react-native-paper';
-import { getAuthErrorMessage, isValidEmail } from '../../features/auth/authErrors';
-import { supabase } from '../../lib/supabase';
+import { getAuthErrorMessage, isValidEmail } from '../features/auth/authErrors';
+import { supabase } from '../lib/supabase';
 
 export default function SignInScreen() {
   const [email, setEmail] = useState('');

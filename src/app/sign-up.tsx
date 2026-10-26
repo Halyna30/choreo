@@ -6,8 +6,8 @@ import {
   MIN_PASSWORD_LENGTH,
   getAuthErrorMessage,
   isValidEmail,
-} from '../../features/auth/authErrors';
-import { supabase } from '../../lib/supabase';
+} from '../features/auth/authErrors';
+import { supabase } from '../lib/supabase';
 
 export default function SignUpScreen() {
   const [displayName, setDisplayName] = useState('');
