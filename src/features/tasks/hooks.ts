@@ -2,15 +2,15 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { supabase } from '../../lib/supabase';
 import {
-  createTask,
   createTemplate,
   deleteTask,
   deleteTemplate,
+  fetchPendingTasks,
   fetchTask,
   fetchTasksForDay,
   fetchTemplate,
   fetchTemplates,
-  updateTask,
+  saveTask,
   updateTaskStatus,
   updateTemplate,
 } from './api';
@@ -19,6 +19,7 @@ import type { Task } from './types';
 export const taskKeys = {
   group: (groupId?: string) => ['tasks', groupId] as const,
   day: (groupId?: string, date?: string) => ['tasks', groupId, date] as const,
+  pending: (groupId?: string) => ['tasks', groupId, 'pending'] as const,
   detail: (taskId?: string) => ['task', taskId] as const,
 };
 
@@ -37,6 +38,14 @@ export function useTasksForDay(groupId: string | undefined, date: string) {
   });
 }
 
+export function usePendingTasks(groupId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: taskKeys.pending(groupId),
+    queryFn: () => fetchPendingTasks(groupId as string),
+    enabled: Boolean(groupId) && enabled,
+  });
+}
+
 export function useTask(taskId: string | undefined) {
   return useQuery({
     queryKey: taskKeys.detail(taskId),
@@ -45,29 +54,24 @@ export function useTask(taskId: string | undefined) {
   });
 }
 
+// Po zmianie zadań odświeżamy listy, szczegóły oraz gwiazdki i cele
 function useInvalidateTasks(groupId: string | undefined) {
   const queryClient = useQueryClient();
   return async (taskId?: string) => {
     await queryClient.invalidateQueries({ queryKey: taskKeys.group(groupId) });
+    await queryClient.invalidateQueries({ queryKey: ['points', groupId] });
+    await queryClient.invalidateQueries({ queryKey: ['goals', groupId] });
     if (taskId) {
       await queryClient.invalidateQueries({ queryKey: taskKeys.detail(taskId) });
     }
   };
 }
 
-export function useCreateTask(groupId: string | undefined) {
+export function useSaveTask(groupId: string | undefined) {
   const invalidate = useInvalidateTasks(groupId);
   return useMutation({
-    mutationFn: createTask,
-    onSuccess: () => invalidate(),
-  });
-}
-
-export function useUpdateTask(groupId: string | undefined) {
-  const invalidate = useInvalidateTasks(groupId);
-  return useMutation({
-    mutationFn: updateTask,
-    onSuccess: (_data, variables) => invalidate(variables.id),
+    mutationFn: saveTask,
+    onSuccess: (_data, variables) => invalidate(variables.taskId ?? undefined),
   });
 }
 
@@ -85,13 +89,16 @@ export function useDeleteTask(groupId: string | undefined) {
 
 // Optymistyczna aktualizacja: status zmienia się na ekranie od razu,
 // a jeśli serwer zwróci błąd, przywracamy poprzedni stan.
-export function useUpdateTaskStatus(groupId: string | undefined) {
+// Dziecko klikające "zrobione" od razu widzi "czeka na zatwierdzenie" – tak jak zrobi to baza.
+export function useUpdateTaskStatus(groupId: string | undefined, isManager: boolean) {
   const queryClient = useQueryClient();
   const invalidate = useInvalidateTasks(groupId);
 
   return useMutation({
     mutationFn: updateTaskStatus,
     onMutate: async ({ id, status }) => {
+      const shownStatus = !isManager && status === 'done' ? 'pending' : status;
+
       await queryClient.cancelQueries({ queryKey: taskKeys.group(groupId) });
       await queryClient.cancelQueries({ queryKey: taskKeys.detail(id) });
 
@@ -101,10 +108,13 @@ export function useUpdateTaskStatus(groupId: string | undefined) {
       const previousDetail = queryClient.getQueryData<Task | null>(taskKeys.detail(id));
 
       queryClient.setQueriesData<Task[]>({ queryKey: taskKeys.group(groupId) }, (old) =>
-        old?.map((task) => (task.id === id ? { ...task, status } : task)),
+        old?.map((task) => (task.id === id ? { ...task, status: shownStatus } : task)),
       );
       if (previousDetail) {
-        queryClient.setQueryData<Task>(taskKeys.detail(id), { ...previousDetail, status });
+        queryClient.setQueryData<Task>(taskKeys.detail(id), {
+          ...previousDetail,
+          status: shownStatus,
+        });
       }
 
       return { previousLists, previousDetail };
@@ -180,27 +190,50 @@ export function useDeleteTemplate(groupId: string | undefined) {
 
 // ---------- Realtime ----------
 
-// Nasłuchuje zmian w zadaniach grupy (Supabase Realtime).
-// Gdy ktoś doda zadanie albo zmieni status, odświeżamy listy.
+// Nasłuchuje zmian w zadaniach, gwiazdkach i celach grupy (Supabase Realtime)
 export function useTasksRealtime(groupId: string | undefined) {
   const queryClient = useQueryClient();
 
   useEffect(() => {
     if (!groupId) return;
 
+    const refreshTasks = (changedId?: string) => {
+      queryClient.invalidateQueries({ queryKey: taskKeys.group(groupId) });
+      queryClient.invalidateQueries({ queryKey: ['points', groupId] });
+      if (changedId) {
+        queryClient.invalidateQueries({ queryKey: taskKeys.detail(changedId) });
+      }
+    };
+
     const channel = supabase
-      .channel(`tasks:${groupId}`)
+      .channel(`group:${groupId}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'tasks', filter: `group_id=eq.${groupId}` },
-        (payload) => {
-          queryClient.invalidateQueries({ queryKey: taskKeys.group(groupId) });
-          const changedId =
-            (payload.new as Partial<Task>)?.id ?? (payload.old as Partial<Task>)?.id;
-          if (changedId) {
-            queryClient.invalidateQueries({ queryKey: taskKeys.detail(changedId) });
-          }
+        (payload) =>
+          refreshTasks(
+            (payload.new as Partial<Task>)?.id ?? (payload.old as Partial<Task>)?.id,
+          ),
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'task_participants',
+          filter: `group_id=eq.${groupId}`,
         },
+        () => refreshTasks(),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'point_events', filter: `group_id=eq.${groupId}` },
+        () => queryClient.invalidateQueries({ queryKey: ['points', groupId] }),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'goals', filter: `group_id=eq.${groupId}` },
+        () => queryClient.invalidateQueries({ queryKey: ['goals', groupId] }),
       )
       .subscribe();
 

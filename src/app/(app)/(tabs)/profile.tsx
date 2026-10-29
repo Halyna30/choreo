@@ -7,7 +7,10 @@ import { SectionCard } from '../../../components/SectionCard';
 import { useAuth } from '../../../features/auth/AuthProvider';
 import { MemberListItem } from '../../../features/groups/components/MemberListItem';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
-import { ROLE_LABELS } from '../../../features/groups/roles';
+import { ROLE_LABELS, canManageTasks } from '../../../features/groups/roles';
+import { GoalsSection } from '../../../features/points/components/GoalsSection';
+import { RewardsBanner } from '../../../features/points/components/RewardsBanner';
+import { usePointBalances } from '../../../features/points/hooks';
 import { queryClient } from '../../../lib/queryClient';
 import { supabase } from '../../../lib/supabase';
 import { useAppTheme } from '../../../lib/theme';
@@ -23,6 +26,10 @@ export default function ProfileScreen() {
   const displayName: string = user?.user_metadata?.display_name ?? 'Użytkownik';
   const shownName = membership?.label || displayName;
   const isOwner = membership?.role === 'owner';
+  const isManager = canManageTasks(membership?.role);
+  const isChild = membership?.role === 'child';
+  const { data: balances } = usePointBalances(membership?.group_id);
+  const myBalance = user ? balances?.get(user.id) : undefined;
   const me = members?.find((member) => member.user_id === user?.id);
 
   async function handleSignOut() {
@@ -72,14 +79,32 @@ export default function ProfileScreen() {
         ) : null}
       </View>
 
+      {membership ? (
+        <RewardsBanner
+          isChild={isChild}
+          stars={myBalance?.stars ?? 0}
+          claps={myBalance?.claps ?? 0}
+        />
+      ) : null}
+
+      {membership && user && isChild ? (
+        <GoalsSection
+          groupId={membership.group_id}
+          userId={user.id}
+          stars={myBalance?.stars ?? 0}
+          isOwn
+          canRedeem={false}
+        />
+      ) : null}
+
       <SectionCard title={`Grupa: ${membership?.group.name ?? ''}`}>
         {membersLoading ? (
           <ActivityIndicator style={styles.loader} color={theme.colors.primary} />
         ) : (
           members?.map((member) => {
             const isMe = member.user_id === user?.id;
-            // Zarządca może otworzyć każdego, pozostali tylko siebie
-            const canOpen = isOwner || isMe;
+            // Rodzice mogą otworzyć każdego (np. żeby wręczyć nagrodę), dzieci tylko siebie
+            const canOpen = isManager || isMe;
             return (
               <MemberListItem
                 key={member.user_id}

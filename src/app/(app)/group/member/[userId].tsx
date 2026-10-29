@@ -18,7 +18,10 @@ import {
   useRemoveMember,
   useUpdateMember,
 } from '../../../../features/groups/hooks';
-import { ROLE_LABELS, getMemberName } from '../../../../features/groups/roles';
+import { ROLE_LABELS, canManageTasks, getMemberName } from '../../../../features/groups/roles';
+import { GoalsSection } from '../../../../features/points/components/GoalsSection';
+import { RewardsBanner } from '../../../../features/points/components/RewardsBanner';
+import { usePointBalances } from '../../../../features/points/hooks';
 import type { GroupMember, InviteRole } from '../../../../features/groups/types';
 import { toUserMessage } from '../../../../lib/errors';
 
@@ -50,6 +53,7 @@ export default function MemberScreen() {
       groupId={membership.group_id}
       isMe={member.user_id === session?.user.id}
       isOwner={membership.role === 'owner'}
+      isManager={canManageTasks(membership.role)}
     />
   );
 }
@@ -59,9 +63,13 @@ type MemberFormProps = {
   groupId: string;
   isMe: boolean;
   isOwner: boolean;
+  isManager: boolean;
 };
 
-function MemberForm({ member, groupId, isMe, isOwner }: MemberFormProps) {
+function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormProps) {
+  const { data: balances } = usePointBalances(groupId);
+  const balance = balances?.get(member.user_id);
+  const isChild = member.role === 'child';
   const [label, setLabel] = useState(member.label ?? '');
   const [role, setRole] = useState<InviteRole>(member.role === 'adult' ? 'adult' : 'child');
   const [confirmVisible, setConfirmVisible] = useState(false);
@@ -118,6 +126,21 @@ function MemberForm({ member, groupId, isMe, isOwner }: MemberFormProps) {
           {member.profile?.display_name} · {ROLE_LABELS[member.role]}
         </Text>
       </View>
+
+      {isManager || isMe ? (
+        <RewardsBanner isChild={isChild} stars={balance?.stars ?? 0} claps={balance?.claps ?? 0} />
+      ) : null}
+
+      {isChild && (isManager || isMe) ? (
+        <GoalsSection
+          groupId={groupId}
+          userId={member.user_id}
+          stars={balance?.stars ?? 0}
+          isOwn={isMe}
+          canRedeem={isManager && !isMe}
+          ownerName={name}
+        />
+      ) : null}
 
       {canEditLabel ? (
         <TextInput

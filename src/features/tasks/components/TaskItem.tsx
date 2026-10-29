@@ -1,59 +1,81 @@
-import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { useAppTheme } from '../../../lib/theme';
-import { NEXT_STATUS, STATUS_META } from '../status';
+import { STATUS_META, nextStatus } from '../status';
 import type { Task, TaskStatus } from '../types';
 
 type Props = {
   task: Task;
   subtitle?: string;
+  isManager: boolean;
   canChangeStatus: boolean;
   onChangeStatus: (status: TaskStatus) => void;
   onPress: () => void;
 };
 
-export function TaskItem({ task, subtitle, canChangeStatus, onChangeStatus, onPress }: Props) {
+export function TaskItem({
+  task,
+  subtitle,
+  isManager,
+  canChangeStatus,
+  onChangeStatus,
+  onPress,
+}: Props) {
   const theme = useAppTheme();
   const meta = STATUS_META[task.status];
   const isDone = task.status === 'done';
-  const inProgress = task.status === 'in_progress';
+  const next = nextStatus(task.status, isManager);
 
-  // Wygląd przycisku statusu: puste kółko -> zegar -> zielony ptaszek
-  const checkStyle = isDone
-    ? { backgroundColor: theme.colors.success, borderColor: theme.colors.success }
-    : inProgress
-      ? { backgroundColor: theme.colors.tertiaryContainer, borderColor: theme.colors.tertiary }
-      : { backgroundColor: 'transparent', borderColor: theme.colors.outline };
-
-  const iconColor = isDone
-    ? theme.colors.onSecondary
-    : inProgress
-      ? theme.colors.onTertiaryContainer
-      : 'transparent';
+  // Wygląd przycisku statusu: puste kółko -> zegar -> klepsydra -> zielony ptaszek
+  const check = {
+    todo: { bg: 'transparent', border: theme.colors.outline, icon: 'transparent', name: 'check' },
+    in_progress: {
+      bg: theme.colors.tertiaryContainer,
+      border: theme.colors.tertiary,
+      icon: theme.colors.onTertiaryContainer,
+      name: 'progress-clock',
+    },
+    pending: {
+      bg: theme.colors.secondaryContainer,
+      border: theme.colors.secondary,
+      icon: theme.colors.onSecondaryContainer,
+      name: 'timer-sand',
+    },
+    done: {
+      bg: theme.colors.success,
+      border: theme.colors.success,
+      icon: theme.colors.onSuccess,
+      name: 'check-bold',
+    },
+  }[task.status];
 
   return (
     <Pressable
       onPress={onPress}
-      // Na webie role="button" renderuje <button>, a zagnieżdżony <button> jest niedozwolony
-      accessibilityRole={Platform.OS === 'web' ? undefined : 'button'}
+      accessibilityRole="button"
       style={({ pressed }) => [
         styles.card,
         {
           backgroundColor: isDone ? theme.colors.surfaceVariant : theme.colors.surface,
-          borderColor: theme.colors.outlineVariant,
+          borderColor:
+            task.status === 'pending' ? theme.colors.secondary : theme.colors.outlineVariant,
           opacity: pressed ? 0.85 : 1,
         },
       ]}
     >
       <Pressable
-        onPress={() => onChangeStatus(NEXT_STATUS[task.status])}
+        onPress={() => onChangeStatus(next)}
         disabled={!canChangeStatus}
         hitSlop={10}
         accessibilityRole="button"
-        accessibilityLabel={`Status: ${meta.label}. Zmień na: ${STATUS_META[NEXT_STATUS[task.status]].label}`}
-        style={[styles.check, checkStyle, !canChangeStatus && styles.disabled]}
+        accessibilityLabel={`Status: ${meta.label}. Zmień na: ${STATUS_META[next].label}`}
+        style={[
+          styles.check,
+          { backgroundColor: check.bg, borderColor: check.border },
+          !canChangeStatus && task.status !== 'done' && task.status !== 'pending' && styles.disabled,
+        ]}
       >
-        <Icon source={isDone ? 'check-bold' : 'progress-clock'} size={18} color={iconColor} />
+        <Icon source={check.name} size={18} color={check.icon} />
       </Pressable>
 
       <View style={styles.body}>
@@ -71,7 +93,18 @@ export function TaskItem({ task, subtitle, canChangeStatus, onChangeStatus, onPr
           {task.template_id ? (
             <Icon source="repeat" size={14} color={theme.colors.onSurfaceVariant} />
           ) : null}
-          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          {task.assignment !== 'single' ? (
+            <Icon
+              source={task.assignment === 'together' ? 'account-group' : 'account-question'}
+              size={14}
+              color={theme.colors.onSurfaceVariant}
+            />
+          ) : null}
+          <Text
+            variant="bodySmall"
+            numberOfLines={1}
+            style={[styles.flex, { color: theme.colors.onSurfaceVariant }]}
+          >
             {subtitle ?? meta.label}
           </Text>
         </View>
@@ -103,5 +136,6 @@ const styles = StyleSheet.create({
   disabled: { opacity: 0.5 },
   body: { flex: 1, gap: 2 },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  flex: { flex: 1 },
   doneTitle: { textDecorationLine: 'line-through' },
 });

@@ -1,11 +1,18 @@
 import { supabase } from '../../lib/supabase';
-import type { Task, TaskStatus, TaskTemplate } from './types';
+import type { Task, TaskAssignment, TaskStatus, TaskTemplate } from './types';
 
 const TASK_COLUMNS =
-  'id, group_id, assigned_to, created_by, title, description, due_date, status, completed_at, created_at, template_id';
+  'id, group_id, assignment, assigned_to, created_by, completed_by, approved_by, title, description, due_date, status, completed_at, created_at, template_id, participants:task_participants(user_id)';
 
 const TEMPLATE_COLUMNS =
-  'id, group_id, assigned_to, created_by, title, description, weekdays, start_date, end_date, is_active, created_at';
+  'id, group_id, assignment, assigned_to, participant_ids, created_by, title, description, weekdays, start_date, end_date, is_active, created_at';
+
+type TaskRow = Omit<Task, 'participant_ids'> & { participants: { user_id: string }[] | null };
+
+function toTask(row: TaskRow): Task {
+  const { participants, ...task } = row;
+  return { ...task, participant_ids: (participants ?? []).map((p) => p.user_id) };
+}
 
 function emptyToNull(value: string | null | undefined): string | null {
   const trimmed = value?.trim();
@@ -30,7 +37,20 @@ export async function fetchTasksForDay(groupId: string, date: string): Promise<T
     .order('created_at', { ascending: true });
 
   if (error) throw error;
-  return (data ?? []) as Task[];
+  return ((data ?? []) as unknown as TaskRow[]).map(toTask);
+}
+
+// Wszystkie zadania czekające na zatwierdzenie (z każdego dnia)
+export async function fetchPendingTasks(groupId: string): Promise<Task[]> {
+  const { data, error } = await supabase
+    .from('tasks')
+    .select(TASK_COLUMNS)
+    .eq('group_id', groupId)
+    .eq('status', 'pending')
+    .order('due_date', { ascending: true });
+
+  if (error) throw error;
+  return ((data ?? []) as unknown as TaskRow[]).map(toTask);
 }
 
 export async function fetchTask(taskId: string): Promise<Task | null> {
@@ -41,52 +61,30 @@ export async function fetchTask(taskId: string): Promise<Task | null> {
     .maybeSingle();
 
   if (error) throw error;
-  return data as Task | null;
+  return data ? toTask(data as unknown as TaskRow) : null;
 }
 
-export async function createTask(params: {
+// Tworzy (taskId = null) albo zmienia zadanie dla jednej lub wielu osób
+export async function saveTask(params: {
   groupId: string;
-  assignedTo: string;
+  taskId: string | null;
   title: string;
   description?: string;
   dueDate: string;
-}): Promise<Task> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .insert({
-      group_id: params.groupId,
-      assigned_to: params.assignedTo,
-      title: params.title.trim(),
-      description: emptyToNull(params.description),
-      due_date: params.dueDate,
-    })
-    .select(TASK_COLUMNS)
-    .single();
-
-  if (error) throw error;
-  return data as Task;
-}
-
-export async function updateTask(params: {
-  id: string;
-  title: string;
-  description?: string;
-  assignedTo: string;
-  dueDate: string;
+  assignment: TaskAssignment;
+  assigneeIds: string[];
 }): Promise<void> {
-  const { data, error } = await supabase
-    .from('tasks')
-    .update({
-      title: params.title.trim(),
-      description: emptyToNull(params.description),
-      assigned_to: params.assignedTo,
-      due_date: params.dueDate,
-    })
-    .eq('id', params.id)
-    .select('id');
+  const { error } = await supabase.rpc('save_group_task', {
+    p_group_id: params.groupId,
+    p_task_id: params.taskId,
+    p_title: params.title,
+    p_description: params.description ?? '',
+    p_due_date: params.dueDate,
+    p_assignment: params.assignment,
+    p_assignee_ids: params.assigneeIds,
+  });
 
   if (error) throw error;
-  if (!data || data.length === 0) throw new Error('Nie masz uprawnień do tej operacji.');
 }
 
 export async function updateTaskStatus(params: { id: string; status: TaskStatus }): Promise<void> {
@@ -97,7 +95,7 @@ export async function updateTaskStatus(params: { id: string; status: TaskStatus 
     .select('id');
 
   if (error) throw error;
-  if (!data || data.length === 0) throw new Error('Możesz zmieniać tylko status swoich zadań.');
+  if (!data || data.length === 0) throw new Error('Nie możesz zmienić statusu tego zadania.');
 }
 
 export async function deleteTask(taskId: string): Promise<void> {
@@ -108,6 +106,12 @@ export async function deleteTask(taskId: string): Promise<void> {
 }
 
 // ---------- Szablony zadań cyklicznych ----------
+
+function templateAssignees(assignment: TaskAssignment, assigneeIds: string[]) {
+  return assignment === 'single'
+    ? { assigned_to: assigneeIds[0], participant_ids: [] as string[] }
+    : { assigned_to: null, participant_ids: assigneeIds };
+}
 
 export async function fetchTemplates(groupId: string): Promise<TaskTemplate[]> {
   const { data, error } = await supabase
@@ -133,7 +137,8 @@ export async function fetchTemplate(templateId: string): Promise<TaskTemplate | 
 
 export async function createTemplate(params: {
   groupId: string;
-  assignedTo: string;
+  assignment: TaskAssignment;
+  assigneeIds: string[];
   title: string;
   description?: string;
   weekdays: number[];
@@ -143,7 +148,8 @@ export async function createTemplate(params: {
     .from('task_templates')
     .insert({
       group_id: params.groupId,
-      assigned_to: params.assignedTo,
+      assignment: params.assignment,
+      ...templateAssignees(params.assignment, params.assigneeIds),
       title: params.title.trim(),
       description: emptyToNull(params.description),
       weekdays: params.weekdays,
@@ -160,7 +166,8 @@ export async function updateTemplate(params: {
   id: string;
   title?: string;
   description?: string;
-  assignedTo?: string;
+  assignment?: TaskAssignment;
+  assigneeIds?: string[];
   weekdays?: number[];
   startDate?: string;
   isActive?: boolean;
@@ -168,7 +175,10 @@ export async function updateTemplate(params: {
   const changes: Record<string, unknown> = {};
   if (params.title !== undefined) changes.title = params.title.trim();
   if (params.description !== undefined) changes.description = emptyToNull(params.description);
-  if (params.assignedTo !== undefined) changes.assigned_to = params.assignedTo;
+  if (params.assignment !== undefined && params.assigneeIds !== undefined) {
+    changes.assignment = params.assignment;
+    Object.assign(changes, templateAssignees(params.assignment, params.assigneeIds));
+  }
   if (params.weekdays !== undefined) changes.weekdays = params.weekdays;
   if (params.startDate !== undefined) changes.start_date = params.startDate;
   if (params.isActive !== undefined) changes.is_active = params.isActive;

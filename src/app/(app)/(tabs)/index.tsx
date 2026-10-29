@@ -6,12 +6,21 @@ import { ProgressHero } from '../../../components/ProgressHero';
 import { useAuth } from '../../../features/auth/AuthProvider';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
 import { canManageTasks } from '../../../features/groups/roles';
+import { memberLookup } from '../../../features/groups/useMemberLookup';
+import { canChangeTaskStatus, describeAssignees, taskBelongsTo } from '../../../features/tasks/assignees';
+import { ApprovalsCard } from '../../../features/tasks/components/ApprovalsCard';
 import { DaySwitcher } from '../../../features/tasks/components/DaySwitcher';
 import { TaskItem } from '../../../features/tasks/components/TaskItem';
 import { TaskSheet } from '../../../features/tasks/components/TaskSheet';
 import { formatFullDate, todayKey } from '../../../features/tasks/dates';
-import { useTasksForDay, useUpdateTaskStatus } from '../../../features/tasks/hooks';
-import { countDone } from '../../../features/tasks/status';
+import { statusFeedback } from '../../../features/tasks/feedback';
+import {
+  usePendingTasks,
+  useTasksForDay,
+  useUpdateTaskStatus,
+} from '../../../features/tasks/hooks';
+import { STATUS_META, countDone } from '../../../features/tasks/status';
+import type { Task, TaskStatus } from '../../../features/tasks/types';
 import { toUserMessage } from '../../../lib/errors';
 import { useAppTheme } from '../../../lib/theme';
 
@@ -21,24 +30,53 @@ export default function TodayScreen() {
   const userId = session?.user.id;
   const { data: membership } = useCurrentMembership();
   const groupId = membership?.group_id;
+  const isManager = canManageTasks(membership?.role);
 
   const [date, setDate] = useState(todayKey);
   const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+
   const { data: members } = useGroupMembers(groupId);
   const { data: tasks, isLoading, error, refetch, isRefetching } = useTasksForDay(groupId, date);
-  const statusMutation = useUpdateTaskStatus(groupId);
+  const { data: pending } = usePendingTasks(groupId, isManager);
+  const statusMutation = useUpdateTaskStatus(groupId, isManager);
+  const lookup = memberLookup(members);
 
   // Najpierw niezrobione, zrobione na końcu listy
   const myTasks = (tasks ?? [])
-    .filter((task) => task.assigned_to === userId)
+    .filter((task) => taskBelongsTo(task, userId))
     .sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done'));
   const done = countDone(myTasks);
-  const isManager = canManageTasks(membership?.role);
-  // zadanie bierzemy z listy, więc zmiana statusu od razu widać też w okienku
-  const selectedTask = myTasks.find((task) => task.id === selectedTaskId) ?? null;
+
+  const allKnown = [...(tasks ?? []), ...(pending ?? [])];
+  const selectedTask = allKnown.find((task) => task.id === selectedTaskId) ?? null;
 
   const name: string =
     membership?.label || session?.user.user_metadata?.display_name || 'Cześć';
+
+  function changeStatus(task: Task, status: TaskStatus) {
+    statusMutation.mutate(
+      { id: task.id, status },
+      {
+        onSuccess: () =>
+          setMessage(
+            statusFeedback({
+              task,
+              status,
+              isManager,
+              userId,
+              nameOf: lookup.nameOf,
+              isChild: lookup.isChild,
+            }),
+          ),
+      },
+    );
+  }
+
+  function subtitleOf(task: Task) {
+    const status = STATUS_META[task.status].label;
+    return task.assignment === 'single' ? status : `${status} · ${describeAssignees(task, lookup.nameOf)}`;
+  }
 
   return (
     <View style={styles.container}>
@@ -63,6 +101,14 @@ export default function TodayScreen() {
               done={done}
               total={myTasks.length}
             />
+            {isManager ? (
+              <ApprovalsCard
+                tasks={pending ?? []}
+                members={members}
+                onApprove={(task) => changeStatus(task, 'done')}
+                onOpen={(task) => setSelectedTaskId(task.id)}
+              />
+            ) : null}
             <DaySwitcher value={date} onChange={setDate} />
             {myTasks.length > 0 ? (
               <Text
@@ -97,8 +143,10 @@ export default function TodayScreen() {
         renderItem={({ item }) => (
           <TaskItem
             task={item}
-            canChangeStatus
-            onChangeStatus={(status) => statusMutation.mutate({ id: item.id, status })}
+            subtitle={subtitleOf(item)}
+            isManager={isManager}
+            canChangeStatus={canChangeTaskStatus(item, userId, isManager)}
+            onChangeStatus={(status) => changeStatus(item, status)}
             onPress={() => setSelectedTaskId(item.id)}
           />
         )}
@@ -118,15 +166,19 @@ export default function TodayScreen() {
         task={selectedTask}
         members={members}
         isManager={isManager}
-        canChangeStatus
-        onChangeStatus={(status) =>
-          selectedTask && statusMutation.mutate({ id: selectedTask.id, status })
-        }
+        onChangeStatus={changeStatus}
         onDismiss={() => setSelectedTaskId(null)}
       />
 
-      <Snackbar visible={Boolean(statusMutation.error)} onDismiss={() => statusMutation.reset()}>
-        {statusMutation.error ? toUserMessage(statusMutation.error) : ''}
+      <Snackbar
+        visible={Boolean(statusMutation.error) || Boolean(message)}
+        onDismiss={() => {
+          statusMutation.reset();
+          setMessage(null);
+        }}
+        duration={2500}
+      >
+        {statusMutation.error ? toUserMessage(statusMutation.error) : (message ?? '')}
       </Snackbar>
     </View>
   );

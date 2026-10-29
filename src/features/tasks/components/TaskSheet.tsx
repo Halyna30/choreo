@@ -13,6 +13,7 @@ import {
   ActivityIndicator,
   Button,
   HelperText,
+  Icon,
   IconButton,
   SegmentedButtons,
   Text,
@@ -31,6 +32,7 @@ import {
 } from '../../comments/hooks';
 import { getMemberName } from '../../groups/roles';
 import type { GroupMember } from '../../groups/types';
+import { canChangeTaskStatus, describeAssignees, isTaskPerson } from '../assignees';
 import { formatFullDate, todayKey, toDateKey } from '../dates';
 import { STATUS_META } from '../status';
 import type { Task, TaskStatus } from '../types';
@@ -41,8 +43,7 @@ type Props = {
   task: Task | null;
   members: GroupMember[] | undefined;
   isManager: boolean;
-  canChangeStatus: boolean;
-  onChangeStatus: (status: TaskStatus) => void;
+  onChangeStatus: (task: Task, status: TaskStatus) => void;
   onDismiss: () => void;
 };
 
@@ -53,15 +54,8 @@ function formatCommentTime(iso: string): string {
   return `${date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}, ${time}`;
 }
 
-// Okienko zadania otwierane na tym samym ekranie: status, szczegóły i komentarze
-export function TaskSheet({
-  task,
-  members,
-  isManager,
-  canChangeStatus,
-  onChangeStatus,
-  onDismiss,
-}: Props) {
+// Okienko zadania otwierane na tym samym ekranie: status, zatwierdzanie i komentarze
+export function TaskSheet({ task, members, isManager, onChangeStatus, onDismiss }: Props) {
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -71,11 +65,7 @@ export function TaskSheet({
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Pressable
-          style={styles.backdrop}
-          onPress={onDismiss}
-          accessibilityLabel="Zamknij"
-        />
+        <Pressable style={styles.backdrop} onPress={onDismiss} accessibilityLabel="Zamknij" />
         <View
           style={[
             styles.sheet,
@@ -90,7 +80,6 @@ export function TaskSheet({
               task={task}
               members={members}
               isManager={isManager}
-              canChangeStatus={canChangeStatus}
               onChangeStatus={onChangeStatus}
               onDismiss={onDismiss}
             />
@@ -101,14 +90,7 @@ export function TaskSheet({
   );
 }
 
-function SheetContent({
-  task,
-  members,
-  isManager,
-  canChangeStatus,
-  onChangeStatus,
-  onDismiss,
-}: Props & { task: Task }) {
+function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: Props & { task: Task }) {
   const theme = useAppTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -119,13 +101,19 @@ function SheetContent({
   const deleteComment = useDeleteComment(task.id);
   useCommentsRealtime(task.id);
 
-  const assignee = members?.find((member) => member.user_id === task.assigned_to);
-  // Dziecko komentuje swoje zadanie, gdy jest w trakcie albo zrobione
-  const canComment =
-    isManager || (task.assigned_to === userId && task.status !== 'todo');
+  const isPending = task.status === 'pending';
+  const isMine = isTaskPerson(task, userId);
+  const canChangeStatus = canChangeTaskStatus(task, userId, isManager);
+  // Dziecko komentuje swoje zadanie, gdy jest w trakcie, czeka albo jest zrobione
+  const canComment = isManager || (isMine && task.status !== 'todo');
 
   function memberById(id: string) {
     return members?.find((member) => member.user_id === id);
+  }
+
+  function nameOf(id: string) {
+    const member = memberById(id);
+    return member ? getMemberName(member) : '—';
   }
 
   function handleSend() {
@@ -147,9 +135,9 @@ function SheetContent({
           <Text variant="headlineSmall">{task.title}</Text>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
             {[
-              assignee ? getMemberName(assignee) : null,
+              describeAssignees(task, nameOf),
               formatFullDate(task.due_date),
-              task.template_id ? '🔁 cykliczne' : null,
+              task.template_id ? '🔁' : null,
             ]
               .filter(Boolean)
               .join(' · ')}
@@ -160,16 +148,60 @@ function SheetContent({
 
       {task.description ? <Text variant="bodyLarge">{task.description}</Text> : null}
 
-      <SegmentedButtons
-        value={task.status}
-        onValueChange={(value) => onChangeStatus(value as TaskStatus)}
-        buttons={STATUSES.map((status) => ({
-          value: status,
-          label: STATUS_META[status].label,
-          icon: STATUS_META[status].icon,
-          disabled: !canChangeStatus,
-        }))}
-      />
+      {isPending ? (
+        <View style={[styles.banner, { backgroundColor: theme.colors.secondaryContainer }]}>
+          <Icon source="timer-sand" size={22} color={theme.colors.onSecondaryContainer} />
+          <Text
+            variant="bodyMedium"
+            style={[styles.flex, { color: theme.colors.onSecondaryContainer }]}
+          >
+            {isManager
+              ? `${task.completed_by ? nameOf(task.completed_by) : 'Dziecko'} oznacza zadanie jako zrobione. Zatwierdzasz?`
+              : 'Super! Czekamy, aż rodzic zatwierdzi zadanie ⭐'}
+          </Text>
+        </View>
+      ) : null}
+
+      {isPending && isManager ? (
+        <View style={styles.approveRow}>
+          <Button
+            mode="contained"
+            icon="check-decagram"
+            style={styles.flex}
+            buttonColor={theme.colors.success}
+            textColor={theme.colors.onSuccess}
+            onPress={() => onChangeStatus(task, 'done')}
+          >
+            Zatwierdź
+          </Button>
+          <Button
+            mode="outlined"
+            icon="undo"
+            style={styles.flex}
+            onPress={() => onChangeStatus(task, 'in_progress')}
+          >
+            Do poprawy
+          </Button>
+        </View>
+      ) : (
+        <SegmentedButtons
+          // "czeka na zatwierdzenie" pokazujemy jako zaznaczone "Zrobione"
+          value={isPending ? 'done' : task.status}
+          onValueChange={(value) => onChangeStatus(task, value as TaskStatus)}
+          buttons={STATUSES.map((status) => ({
+            value: status,
+            label: STATUS_META[status].label,
+            icon: STATUS_META[status].icon,
+            disabled: !canChangeStatus,
+          }))}
+        />
+      )}
+
+      {task.status === 'done' && !isManager && isMine ? (
+        <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+          Zadanie zatwierdzone – gwiazdka jest Twoja ⭐
+        </Text>
+      ) : null}
 
       <Text variant="titleMedium" style={styles.commentsTitle}>
         Komentarze
@@ -185,7 +217,7 @@ function SheetContent({
         {comments?.map((comment) => {
           const author = memberById(comment.author_id);
           const authorName = author ? getMemberName(author) : 'Członek grupy';
-          const isMine = comment.author_id === userId;
+          const isOwn = comment.author_id === userId;
           return (
             <View key={comment.id} style={styles.comment}>
               <MemberAvatar
@@ -198,7 +230,7 @@ function SheetContent({
                 style={[
                   styles.bubble,
                   {
-                    backgroundColor: isMine
+                    backgroundColor: isOwn
                       ? theme.colors.primaryContainer
                       : theme.colors.surfaceVariant,
                   },
@@ -212,7 +244,7 @@ function SheetContent({
                 </View>
                 <Text variant="bodyMedium">{comment.body}</Text>
               </View>
-              {isMine ? (
+              {isOwn ? (
                 <IconButton
                   icon="delete-outline"
                   size={18}
@@ -250,7 +282,7 @@ function SheetContent({
         </View>
       ) : (
         <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-          {task.assigned_to === userId
+          {isMine
             ? 'Komentarz dodasz, gdy zaczniesz zadanie albo je skończysz.'
             : 'Możesz komentować tylko swoje zadania.'}
         </Text>
@@ -277,13 +309,15 @@ const styles = StyleSheet.create({
     borderTopRightRadius: 28,
     paddingHorizontal: 20,
     paddingTop: 10,
-    maxHeight: '88%',
+    maxHeight: '90%',
   },
   handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: 2, opacity: 0.5 },
   content: { gap: 12, paddingTop: 8 },
   titleRow: { flexDirection: 'row', alignItems: 'flex-start' },
+  banner: { flexDirection: 'row', alignItems: 'center', gap: 10, padding: 12, borderRadius: 16 },
+  approveRow: { flexDirection: 'row', gap: 10 },
   commentsTitle: { marginTop: 4 },
-  comments: { maxHeight: 260 },
+  comments: { maxHeight: 240 },
   commentsContent: { gap: 10 },
   comment: { flexDirection: 'row', alignItems: 'flex-start', gap: 8 },
   bubble: { flex: 1, borderRadius: 16, paddingVertical: 8, paddingHorizontal: 12, gap: 2 },

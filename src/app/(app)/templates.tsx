@@ -2,7 +2,9 @@ import { router } from 'expo-router';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, List, Text } from 'react-native-paper';
 import { useCurrentMembership, useGroupMembers } from '../../features/groups/hooks';
-import { canManageTasks, getMemberName } from '../../features/groups/roles';
+import { canManageTasks } from '../../features/groups/roles';
+import { memberLookup } from '../../features/groups/useMemberLookup';
+import { describeAssignees } from '../../features/tasks/assignees';
 import { useTemplates } from '../../features/tasks/hooks';
 import { describeWeekdays } from '../../features/tasks/weekdays';
 import { toUserMessage } from '../../lib/errors';
@@ -14,10 +16,7 @@ export default function TemplatesScreen() {
   const { data: members } = useGroupMembers(groupId);
   const isManager = canManageTasks(membership?.role);
 
-  function memberName(userId: string) {
-    const member = members?.find((m) => m.user_id === userId);
-    return member ? getMemberName(member) : '—';
-  }
+  const lookup = memberLookup(members);
 
   return (
     <FlatList
@@ -55,7 +54,7 @@ export default function TemplatesScreen() {
         <List.Item
           title={item.title}
           description={[
-            memberName(item.assigned_to),
+            describeAssignees(item, lookup.nameOf),
             describeWeekdays(item.weekdays),
             item.is_active ? null : 'Wstrzymane',
           ]

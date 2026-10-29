@@ -5,7 +5,7 @@ import { useCurrentMembership, useGroupMembers } from '../../../features/groups/
 import { canManageTasks } from '../../../features/groups/roles';
 import { TaskForm } from '../../../features/tasks/components/TaskForm';
 import { todayKey } from '../../../features/tasks/dates';
-import { useCreateTask, useCreateTemplate } from '../../../features/tasks/hooks';
+import { useCreateTemplate, useSaveTask } from '../../../features/tasks/hooks';
 import type { TaskFormValues } from '../../../features/tasks/types';
 import { isoWeekday, weekdaysFromForm } from '../../../features/tasks/weekdays';
 import { toUserMessage } from '../../../lib/errors';
@@ -15,7 +15,7 @@ export default function NewTaskScreen() {
   const { data: membership } = useCurrentMembership();
   const groupId = membership?.group_id;
   const { data: members, isLoading } = useGroupMembers(groupId);
-  const createTask = useCreateTask(groupId);
+  const saveTask = useSaveTask(groupId);
   const createTemplate = useCreateTemplate(groupId);
 
   if (!canManageTasks(membership?.role)) {
@@ -31,20 +31,22 @@ export default function NewTaskScreen() {
   }
 
   const startDate = date ?? todayKey();
-  const error = createTask.error ?? createTemplate.error;
+  const error = saveTask.error ?? createTemplate.error;
 
   function handleSubmit(values: TaskFormValues) {
     if (!groupId) return;
     const onSuccess = () => router.back();
 
     if (values.repeat === 'none') {
-      createTask.mutate(
+      saveTask.mutate(
         {
           groupId,
+          taskId: null,
           title: values.title,
           description: values.description,
-          assignedTo: values.assignedTo,
           dueDate: values.dueDate,
+          assignment: values.assignment,
+          assigneeIds: values.assigneeIds,
         },
         { onSuccess },
       );
@@ -55,7 +57,8 @@ export default function NewTaskScreen() {
           groupId,
           title: values.title,
           description: values.description,
-          assignedTo: values.assignedTo,
+          assignment: values.assignment,
+          assigneeIds: values.assigneeIds,
           weekdays: weekdaysFromForm(values),
           startDate: values.dueDate,
         },
@@ -71,7 +74,8 @@ export default function NewTaskScreen() {
           title: '',
           description: '',
           // jeśli w grupie jest tylko jedna osoba, wybieramy ją od razu
-          assignedTo: members.length === 1 ? members[0].user_id : '',
+          assigneeIds: members.length === 1 ? [members[0].user_id] : [],
+          assignment: 'single',
           dueDate: startDate,
           repeat: 'none',
           weekdays: [isoWeekday(startDate)],
@@ -79,7 +83,7 @@ export default function NewTaskScreen() {
         members={members}
         repeatMode="optional"
         submitLabel="Dodaj zadanie"
-        loading={createTask.isPending || createTemplate.isPending}
+        loading={saveTask.isPending || createTemplate.isPending}
         serverError={error ? toUserMessage(error) : null}
         onSubmit={handleSubmit}
       />

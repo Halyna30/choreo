@@ -11,6 +11,7 @@ import {
   useTemplate,
   useUpdateTemplate,
 } from '../../../features/tasks/hooks';
+import { assigneeIdsOf } from '../../../features/tasks/assignees';
 import { repeatModeFromWeekdays, weekdaysFromForm } from '../../../features/tasks/weekdays';
 import { toUserMessage } from '../../../lib/errors';
 
@@ -60,7 +61,8 @@ export default function TemplateScreen() {
         initialValues={{
           title: template.title,
           description: template.description ?? '',
-          assignedTo: template.assigned_to,
+          assigneeIds: assigneeIdsOf(template),
+          assignment: template.assignment,
           dueDate: template.start_date,
           repeat: repeatModeFromWeekdays(template.weekdays),
           weekdays: template.weekdays,
@@ -76,7 +78,8 @@ export default function TemplateScreen() {
               id: template.id,
               title: values.title,
               description: values.description,
-              assignedTo: values.assignedTo,
+              assignment: values.assignment,
+              assigneeIds: values.assigneeIds,
               weekdays: weekdaysFromForm(values),
               startDate: values.dueDate,
             },
