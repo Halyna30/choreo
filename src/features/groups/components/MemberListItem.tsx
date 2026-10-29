@@ -27,7 +27,9 @@ export function MemberListItem({ member, isMe, onPress }: Props) {
       description={details.join(' · ')}
       onPress={onPress}
       style={{ paddingLeft: 12 }}
-      left={() => <MemberAvatar userId={member.user_id} name={name} />}
+      left={() => (
+        <MemberAvatar userId={member.user_id} name={name} avatarUrl={member.profile?.avatar_url} />
+      )}
       right={onPress ? (props) => <List.Icon {...props} icon="chevron-right" /> : undefined}
     />
   );

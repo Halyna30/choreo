@@ -4,10 +4,11 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, FAB, Snackbar, Text } from 'react-native-paper';
 import { ProgressHero } from '../../../components/ProgressHero';
 import { useAuth } from '../../../features/auth/AuthProvider';
-import { useCurrentMembership } from '../../../features/groups/hooks';
+import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
 import { canManageTasks } from '../../../features/groups/roles';
 import { DaySwitcher } from '../../../features/tasks/components/DaySwitcher';
 import { TaskItem } from '../../../features/tasks/components/TaskItem';
+import { TaskSheet } from '../../../features/tasks/components/TaskSheet';
 import { formatFullDate, todayKey } from '../../../features/tasks/dates';
 import { useTasksForDay, useUpdateTaskStatus } from '../../../features/tasks/hooks';
 import { countDone } from '../../../features/tasks/status';
@@ -22,6 +23,8 @@ export default function TodayScreen() {
   const groupId = membership?.group_id;
 
   const [date, setDate] = useState(todayKey);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
+  const { data: members } = useGroupMembers(groupId);
   const { data: tasks, isLoading, error, refetch, isRefetching } = useTasksForDay(groupId, date);
   const statusMutation = useUpdateTaskStatus(groupId);
 
@@ -31,6 +34,8 @@ export default function TodayScreen() {
     .sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done'));
   const done = countDone(myTasks);
   const isManager = canManageTasks(membership?.role);
+  // zadanie bierzemy z listy, więc zmiana statusu od razu widać też w okienku
+  const selectedTask = myTasks.find((task) => task.id === selectedTaskId) ?? null;
 
   const name: string =
     membership?.label || session?.user.user_metadata?.display_name || 'Cześć';
@@ -94,7 +99,7 @@ export default function TodayScreen() {
             task={item}
             canChangeStatus
             onChangeStatus={(status) => statusMutation.mutate({ id: item.id, status })}
-            onPress={() => router.push({ pathname: '/task/[id]', params: { id: item.id } })}
+            onPress={() => setSelectedTaskId(item.id)}
           />
         )}
       />
@@ -108,6 +113,17 @@ export default function TodayScreen() {
           onPress={() => router.push({ pathname: '/task/new', params: { date } })}
         />
       ) : null}
+
+      <TaskSheet
+        task={selectedTask}
+        members={members}
+        isManager={isManager}
+        canChangeStatus
+        onChangeStatus={(status) =>
+          selectedTask && statusMutation.mutate({ id: selectedTask.id, status })
+        }
+        onDismiss={() => setSelectedTaskId(null)}
+      />
 
       <Snackbar visible={Boolean(statusMutation.error)} onDismiss={() => statusMutation.reset()}>
         {statusMutation.error ? toUserMessage(statusMutation.error) : ''}

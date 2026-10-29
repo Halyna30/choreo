@@ -38,7 +38,7 @@ export async function joinGroup(code: string): Promise<Group> {
 export async function fetchGroupMembers(groupId: string): Promise<GroupMember[]> {
   const { data, error } = await supabase
     .from('group_members')
-    .select('user_id, role, label, joined_at, profile:profiles(display_name)')
+    .select('user_id, role, label, joined_at, profile:profiles(display_name, avatar_url)')
     .eq('group_id', groupId);
 
   if (error) throw error;

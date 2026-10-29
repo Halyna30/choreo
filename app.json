@@ -28,6 +28,13 @@
     "plugins": [
       "expo-router",
       [
+  "expo-image-picker",
+  {
+    "photosPermission": "Choreo potrzebuje dostępu do zdjęć, aby ustawić Twój awatar.",
+    "cameraPermission": "Choreo potrzebuje aparatu, aby zrobić zdjęcie do awatara."
+  }
+],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#208AEF",

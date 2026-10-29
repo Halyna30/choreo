@@ -2,7 +2,6 @@ import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import {
-  Avatar,
   Button,
   Divider,
   HelperText,
@@ -11,6 +10,7 @@ import {
   TextInput,
 } from 'react-native-paper';
 import { ConfirmDialog } from '../../../../components/ConfirmDialog';
+import { MemberAvatar } from '../../../../components/MemberAvatar';
 import { useAuth } from '../../../../features/auth/AuthProvider';
 import {
   useCurrentMembership,
@@ -107,7 +107,12 @@ function MemberForm({ member, groupId, isMe, isOwner }: MemberFormProps) {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <View style={styles.header}>
-        <Avatar.Text size={64} label={name.charAt(0).toUpperCase()} />
+        <MemberAvatar
+          userId={member.user_id}
+          name={name}
+          avatarUrl={member.profile?.avatar_url}
+          size={72}
+        />
         <Text variant="titleLarge">{name}</Text>
         <Text variant="bodyMedium">
           {member.profile?.display_name} · {ROLE_LABELS[member.role]}

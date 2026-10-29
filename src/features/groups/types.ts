@@ -21,7 +21,7 @@ export type GroupMember = {
   role: GroupRole;
   label: string | null;
   joined_at: string;
-  profile: { display_name: string } | null;
+  profile: { display_name: string; avatar_url: string | null } | null;
 };
 
 export type GroupInvite = {

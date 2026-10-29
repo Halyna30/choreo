@@ -42,6 +42,7 @@ export default function AppLayout() {
         />
         <Stack.Screen name="task/[id]" options={{ title: 'Zadanie', presentation: 'modal' }} />
         <Stack.Screen name="templates" options={{ title: 'Zadania cykliczne' }} />
+        <Stack.Screen name="avatar" options={{ title: 'Awatar', presentation: 'modal' }} />
         <Stack.Screen
           name="template/[id]"
           options={{ title: 'Powtarzanie', presentation: 'modal' }}

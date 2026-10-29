@@ -1,7 +1,7 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { Chip, Divider, List, Text } from 'react-native-paper';
+import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Chip, Divider, Icon, List, Text } from 'react-native-paper';
 import { MemberAvatar } from '../../../components/MemberAvatar';
 import { SectionCard } from '../../../components/SectionCard';
 import { useAuth } from '../../../features/auth/AuthProvider';
@@ -23,6 +23,7 @@ export default function ProfileScreen() {
   const displayName: string = user?.user_metadata?.display_name ?? 'Użytkownik';
   const shownName = membership?.label || displayName;
   const isOwner = membership?.role === 'owner';
+  const me = members?.find((member) => member.user_id === user?.id);
 
   async function handleSignOut() {
     setIsSigningOut(true);
@@ -38,7 +39,26 @@ export default function ProfileScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container}>
       <View style={[styles.hero, { backgroundColor: theme.colors.primaryContainer }]}>
-        <MemberAvatar userId={user?.id} name={shownName} size={84} />
+        <Pressable
+          onPress={() => router.push('/avatar')}
+          accessibilityRole="button"
+          accessibilityLabel="Zmień awatar"
+        >
+          <MemberAvatar
+            userId={user?.id}
+            name={shownName}
+            avatarUrl={me?.profile?.avatar_url}
+            size={96}
+          />
+          <View
+            style={[
+              styles.editBadge,
+              { backgroundColor: theme.colors.primary, borderColor: theme.colors.primaryContainer },
+            ]}
+          >
+            <Icon source="pencil" size={14} color={theme.colors.onPrimary} />
+          </View>
+        </Pressable>
         <Text variant="headlineSmall" style={{ color: theme.colors.onPrimaryContainer }}>
           {shownName}
         </Text>
@@ -87,6 +107,14 @@ export default function ProfileScreen() {
 
       <SectionCard title="Ustawienia">
         <List.Item
+          title="Awatar"
+          description="Zdjęcie albo gotowa postać"
+          left={(props) => <List.Icon {...props} icon="account-circle" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => router.push('/avatar')}
+        />
+        <Divider />
+        <List.Item
           title="Zadania cykliczne"
           description="Codzienne i cotygodniowe obowiązki"
           left={(props) => <List.Icon {...props} icon="repeat" />}
@@ -117,4 +145,15 @@ const styles = StyleSheet.create({
   container: { padding: 16, gap: 20, paddingBottom: 32 },
   hero: { alignItems: 'center', gap: 6, borderRadius: 24, paddingVertical: 24, paddingHorizontal: 16 },
   loader: { marginVertical: 16 },
+  editBadge: {
+    position: 'absolute',
+    right: 0,
+    bottom: 0,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    borderWidth: 3,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

@@ -1,4 +1,3 @@
-import { router } from 'expo-router';
 import { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, ProgressBar, Snackbar, Text } from 'react-native-paper';
@@ -11,6 +10,7 @@ import { canManageTasks, getMemberName } from '../../../features/groups/roles';
 import type { GroupMember } from '../../../features/groups/types';
 import { DaySwitcher } from '../../../features/tasks/components/DaySwitcher';
 import { TaskItem } from '../../../features/tasks/components/TaskItem';
+import { TaskSheet } from '../../../features/tasks/components/TaskSheet';
 import { formatFullDate, todayKey } from '../../../features/tasks/dates';
 import { useTasksForDay, useUpdateTaskStatus } from '../../../features/tasks/hooks';
 import { STATUS_META, countDone } from '../../../features/tasks/status';
@@ -24,9 +24,17 @@ type MemberCardProps = {
   isMe: boolean;
   canChangeStatus: (task: Task) => boolean;
   onChangeStatus: (task: Task, status: TaskStatus) => void;
+  onOpenTask: (task: Task) => void;
 };
 
-function MemberCard({ member, tasks, isMe, canChangeStatus, onChangeStatus }: MemberCardProps) {
+function MemberCard({
+  member,
+  tasks,
+  isMe,
+  canChangeStatus,
+  onChangeStatus,
+  onOpenTask,
+}: MemberCardProps) {
   const theme = useAppTheme();
   const color = useMemberColor(member.user_id);
   const name = getMemberName(member);
@@ -40,7 +48,12 @@ function MemberCard({ member, tasks, isMe, canChangeStatus, onChangeStatus }: Me
       ]}
     >
       <View style={styles.cardHeader}>
-        <MemberAvatar userId={member.user_id} name={name} size={44} />
+        <MemberAvatar
+          userId={member.user_id}
+          name={name}
+          avatarUrl={member.profile?.avatar_url}
+          size={44}
+        />
         <View style={styles.cardTitle}>
           <Text variant="titleMedium">{isMe ? `${name} (Ty)` : name}</Text>
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
@@ -68,7 +81,7 @@ function MemberCard({ member, tasks, isMe, canChangeStatus, onChangeStatus }: Me
                 subtitle={STATUS_META[task.status].label}
                 canChangeStatus={canChangeStatus(task)}
                 onChangeStatus={(status) => onChangeStatus(task, status)}
-                onPress={() => router.push({ pathname: '/task/[id]', params: { id: task.id } })}
+                onPress={() => onOpenTask(task)}
               />
             ))}
           </View>
@@ -87,6 +100,7 @@ export default function GroupScreen() {
   const isManager = canManageTasks(membership?.role);
 
   const [date, setDate] = useState(todayKey);
+  const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId);
   const {
     data: tasks,
@@ -98,6 +112,11 @@ export default function GroupScreen() {
 
   const isLoading = membersLoading || tasksLoading;
   const allTasks = tasks ?? [];
+  const selectedTask = allTasks.find((task) => task.id === selectedTaskId) ?? null;
+  // Dziecko widzi tylko karty dzieci (zadań dorosłych i tak nie dostaje z bazy)
+  const visibleMembers = isManager
+    ? members
+    : members?.filter((member) => member.role === 'child');
 
   return (
     <View style={styles.flex}>
@@ -122,7 +141,7 @@ export default function GroupScreen() {
 
         {isLoading ? <ActivityIndicator style={styles.loader} color={theme.colors.primary} /> : null}
 
-        {members?.map((member) => (
+        {visibleMembers?.map((member) => (
           <MemberCard
             key={member.user_id}
             member={member}
@@ -132,9 +151,23 @@ export default function GroupScreen() {
             isMe={member.user_id === userId}
             canChangeStatus={(task) => isManager || task.assigned_to === userId}
             onChangeStatus={(task, status) => statusMutation.mutate({ id: task.id, status })}
+            onOpenTask={(task) => setSelectedTaskId(task.id)}
           />
         ))}
       </ScrollView>
+
+      <TaskSheet
+        task={selectedTask}
+        members={members}
+        isManager={isManager}
+        canChangeStatus={Boolean(
+          selectedTask && (isManager || selectedTask.assigned_to === userId),
+        )}
+        onChangeStatus={(status) =>
+          selectedTask && statusMutation.mutate({ id: selectedTask.id, status })
+        }
+        onDismiss={() => setSelectedTaskId(null)}
+      />
 
       <Snackbar visible={Boolean(statusMutation.error)} onDismiss={() => statusMutation.reset()}>
         {statusMutation.error ? toUserMessage(statusMutation.error) : ''}
