@@ -1,4 +1,4 @@
-import { Pressable, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { useAppTheme } from '../../../lib/theme';
 import { STATUS_META, nextStatus } from '../status';
@@ -52,7 +52,8 @@ export function TaskItem({
   return (
     <Pressable
       onPress={onPress}
-      accessibilityRole="button"
+      // Na webie role="button" renderuje <button>, a zagnieżdżony <button> jest niedozwolony
+      accessibilityRole={Platform.OS === 'web' ? undefined : 'button'}
       style={({ pressed }) => [
         styles.card,
         {
