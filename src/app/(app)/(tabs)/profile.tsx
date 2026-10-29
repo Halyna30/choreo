@@ -1,15 +1,19 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
-import { Avatar, Button, Divider, List, Text } from 'react-native-paper';
+import { Chip, Divider, List, Text } from 'react-native-paper';
+import { MemberAvatar } from '../../../components/MemberAvatar';
+import { SectionCard } from '../../../components/SectionCard';
 import { useAuth } from '../../../features/auth/AuthProvider';
 import { MemberListItem } from '../../../features/groups/components/MemberListItem';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
 import { ROLE_LABELS } from '../../../features/groups/roles';
 import { queryClient } from '../../../lib/queryClient';
 import { supabase } from '../../../lib/supabase';
+import { useAppTheme } from '../../../lib/theme';
 
 export default function ProfileScreen() {
+  const theme = useAppTheme();
   const { session } = useAuth();
   const { data: membership } = useCurrentMembership();
   const { data: members, isLoading: membersLoading } = useGroupMembers(membership?.group_id);
@@ -17,6 +21,7 @@ export default function ProfileScreen() {
 
   const user = session?.user;
   const displayName: string = user?.user_metadata?.display_name ?? 'Użytkownik';
+  const shownName = membership?.label || displayName;
   const isOwner = membership?.role === 'owner';
 
   async function handleSignOut() {
@@ -32,21 +37,24 @@ export default function ProfileScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <View style={styles.header}>
-        <Avatar.Text size={72} label={displayName.charAt(0).toUpperCase()} />
-        <Text variant="titleLarge">{membership?.label || displayName}</Text>
-        <Text variant="bodyMedium">{user?.email}</Text>
+      <View style={[styles.hero, { backgroundColor: theme.colors.primaryContainer }]}>
+        <MemberAvatar userId={user?.id} name={shownName} size={84} />
+        <Text variant="headlineSmall" style={{ color: theme.colors.onPrimaryContainer }}>
+          {shownName}
+        </Text>
+        <Text variant="bodyMedium" style={{ color: theme.colors.onPrimaryContainer }}>
+          {user?.email}
+        </Text>
         {membership ? (
-          <Text variant="labelLarge">{ROLE_LABELS[membership.role]}</Text>
+          <Chip icon="shield-account" compact style={{ backgroundColor: theme.colors.surface }}>
+            {ROLE_LABELS[membership.role]}
+          </Chip>
         ) : null}
       </View>
 
-      <Divider />
-
-      <List.Section>
-        <List.Subheader>Grupa: {membership?.group.name}</List.Subheader>
+      <SectionCard title={`Grupa: ${membership?.group.name ?? ''}`}>
         {membersLoading ? (
-          <ActivityIndicator style={styles.loader} />
+          <ActivityIndicator style={styles.loader} color={theme.colors.primary} />
         ) : (
           members?.map((member) => {
             const isMe = member.user_id === user?.id;
@@ -62,33 +70,51 @@ export default function ProfileScreen() {
             );
           })
         )}
-      </List.Section>
+        {isOwner ? (
+          <>
+            <Divider />
+            <List.Item
+              title="Zaproś do grupy"
+              titleStyle={{ color: theme.colors.primary, fontFamily: theme.fonts.titleMedium.fontFamily }}
+              left={(props) => (
+                <List.Icon {...props} icon="account-plus" color={theme.colors.primary} />
+              )}
+              onPress={() => router.push('/group/invite')}
+            />
+          </>
+        ) : null}
+      </SectionCard>
 
-      {isOwner ? (
-        <Button mode="contained" icon="account-plus" onPress={() => router.push('/group/invite')}>
-          Zaproś do grupy
-        </Button>
-      ) : null}
-
-      <Button mode="contained-tonal" icon="repeat" onPress={() => router.push('/templates')}>
-        Zadania cykliczne
-      </Button>
-
-      <Button
-        mode="outlined"
-        icon="logout"
-        onPress={handleSignOut}
-        loading={isSigningOut}
-        disabled={isSigningOut}
-      >
-        Wyloguj się
-      </Button>
+      <SectionCard title="Ustawienia">
+        <List.Item
+          title="Zadania cykliczne"
+          description="Codzienne i cotygodniowe obowiązki"
+          left={(props) => <List.Icon {...props} icon="repeat" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => router.push('/templates')}
+        />
+        <Divider />
+        <List.Item
+          title="Wygląd"
+          description="Motyw i tryb jasny lub ciemny"
+          left={(props) => <List.Icon {...props} icon="palette" />}
+          right={(props) => <List.Icon {...props} icon="chevron-right" />}
+          onPress={() => router.push('/settings')}
+        />
+        <Divider />
+        <List.Item
+          title={isSigningOut ? 'Wylogowywanie…' : 'Wyloguj się'}
+          titleStyle={{ color: theme.colors.error }}
+          left={(props) => <List.Icon {...props} icon="logout" color={theme.colors.error} />}
+          onPress={isSigningOut ? undefined : handleSignOut}
+        />
+      </SectionCard>
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { padding: 16, gap: 16 },
-  header: { alignItems: 'center', gap: 6, marginTop: 16 },
+  container: { padding: 16, gap: 20, paddingBottom: 32 },
+  hero: { alignItems: 'center', gap: 6, borderRadius: 24, paddingVertical: 24, paddingHorizontal: 16 },
   loader: { marginVertical: 16 },
 });

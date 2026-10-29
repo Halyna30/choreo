@@ -1,0 +1,8 @@
+// Polska odmiana: 1 zadanie, 2 zadania, 5 zadań, 22 zadania, 25 zadań
+export function plural(count: number, one: string, few: string, many: string): string {
+  if (count === 1) return one;
+  const lastDigit = count % 10;
+  const lastTwo = count % 100;
+  if (lastDigit >= 2 && lastDigit <= 4 && (lastTwo < 12 || lastTwo > 14)) return few;
+  return many;
+}

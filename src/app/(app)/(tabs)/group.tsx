@@ -1,18 +1,85 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
-import { ActivityIndicator, Avatar, Card, ProgressBar, Snackbar, Text } from 'react-native-paper';
+import { ActivityIndicator, ProgressBar, Snackbar, Text } from 'react-native-paper';
+import { MemberAvatar } from '../../../components/MemberAvatar';
+import { ProgressHero } from '../../../components/ProgressHero';
 import { useAuth } from '../../../features/auth/AuthProvider';
+import { useMemberColor } from '../../../features/groups/colors';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
 import { canManageTasks, getMemberName } from '../../../features/groups/roles';
+import type { GroupMember } from '../../../features/groups/types';
 import { DaySwitcher } from '../../../features/tasks/components/DaySwitcher';
 import { TaskItem } from '../../../features/tasks/components/TaskItem';
-import { todayKey } from '../../../features/tasks/dates';
+import { formatFullDate, todayKey } from '../../../features/tasks/dates';
 import { useTasksForDay, useUpdateTaskStatus } from '../../../features/tasks/hooks';
 import { STATUS_META, countDone } from '../../../features/tasks/status';
+import type { Task, TaskStatus } from '../../../features/tasks/types';
 import { toUserMessage } from '../../../lib/errors';
+import { useAppTheme } from '../../../lib/theme';
+
+type MemberCardProps = {
+  member: GroupMember;
+  tasks: Task[];
+  isMe: boolean;
+  canChangeStatus: (task: Task) => boolean;
+  onChangeStatus: (task: Task, status: TaskStatus) => void;
+};
+
+function MemberCard({ member, tasks, isMe, canChangeStatus, onChangeStatus }: MemberCardProps) {
+  const theme = useAppTheme();
+  const color = useMemberColor(member.user_id);
+  const name = getMemberName(member);
+  const done = countDone(tasks);
+
+  return (
+    <View
+      style={[
+        styles.card,
+        { backgroundColor: theme.colors.surface, borderColor: theme.colors.outlineVariant },
+      ]}
+    >
+      <View style={styles.cardHeader}>
+        <MemberAvatar userId={member.user_id} name={name} size={44} />
+        <View style={styles.cardTitle}>
+          <Text variant="titleMedium">{isMe ? `${name} (Ty)` : name}</Text>
+          <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
+            {tasks.length > 0
+              ? done === tasks.length
+                ? 'Wszystko zrobione 🌟'
+                : `Zrobione: ${done} z ${tasks.length}`
+              : 'Brak zadań na ten dzień'}
+          </Text>
+        </View>
+      </View>
+
+      {tasks.length > 0 ? (
+        <>
+          <ProgressBar
+            progress={done / tasks.length}
+            color={color.accent}
+            style={[styles.progress, { backgroundColor: theme.colors.surfaceVariant }]}
+          />
+          <View style={styles.tasks}>
+            {tasks.map((task) => (
+              <TaskItem
+                key={task.id}
+                task={task}
+                subtitle={STATUS_META[task.status].label}
+                canChangeStatus={canChangeStatus(task)}
+                onChangeStatus={(status) => onChangeStatus(task, status)}
+                onPress={() => router.push({ pathname: '/task/[id]', params: { id: task.id } })}
+              />
+            ))}
+          </View>
+        </>
+      ) : null}
+    </View>
+  );
+}
 
 export default function GroupScreen() {
+  const theme = useAppTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
   const { data: membership } = useCurrentMembership();
@@ -21,10 +88,12 @@ export default function GroupScreen() {
 
   const [date, setDate] = useState(todayKey);
   const { data: members, isLoading: membersLoading } = useGroupMembers(groupId);
-  const { data: tasks, isLoading: tasksLoading, refetch, isRefetching } = useTasksForDay(
-    groupId,
-    date,
-  );
+  const {
+    data: tasks,
+    isLoading: tasksLoading,
+    refetch,
+    isRefetching,
+  } = useTasksForDay(groupId, date);
   const statusMutation = useUpdateTaskStatus(groupId);
 
   const isLoading = membersLoading || tasksLoading;
@@ -34,60 +103,37 @@ export default function GroupScreen() {
     <View style={styles.flex}>
       <ScrollView
         contentContainerStyle={styles.container}
-        refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefetching}
+            onRefresh={refetch}
+            colors={[theme.colors.primary]}
+            tintColor={theme.colors.primary}
+          />
+        }
       >
+        <ProgressHero
+          title={membership?.group.name ?? 'Grupa'}
+          subtitle={formatFullDate(date)}
+          done={countDone(allTasks)}
+          total={allTasks.length}
+        />
         <DaySwitcher value={date} onChange={setDate} />
 
-        {allTasks.length > 0 ? (
-          <Text variant="bodyMedium" style={styles.total}>
-            Cała grupa: {countDone(allTasks)} z {allTasks.length} zadań zrobionych
-          </Text>
-        ) : null}
+        {isLoading ? <ActivityIndicator style={styles.loader} color={theme.colors.primary} /> : null}
 
-        {isLoading ? <ActivityIndicator style={styles.loader} /> : null}
-
-        {members?.map((member) => {
-          const memberTasks = allTasks.filter((task) => task.assigned_to === member.user_id);
-          const done = countDone(memberTasks);
-          const name = getMemberName(member);
-          const isMe = member.user_id === userId;
-
-          return (
-            <Card key={member.user_id} mode="outlined" style={styles.card}>
-              <Card.Title
-                title={isMe ? `${name} (Ty)` : name}
-                subtitle={
-                  memberTasks.length > 0
-                    ? `Zrobione: ${done} z ${memberTasks.length}`
-                    : 'Brak zadań na ten dzień'
-                }
-                left={(props) => (
-                  <Avatar.Text {...props} label={name.charAt(0).toUpperCase()} />
-                )}
-              />
-              {memberTasks.length > 0 ? (
-                <Card.Content style={styles.cardContent}>
-                  <ProgressBar
-                    progress={done / memberTasks.length}
-                    style={styles.progress}
-                  />
-                  {memberTasks.map((task) => (
-                    <TaskItem
-                      key={task.id}
-                      task={task}
-                      subtitle={STATUS_META[task.status].label}
-                      canChangeStatus={isManager || task.assigned_to === userId}
-                      onChangeStatus={(status) => statusMutation.mutate({ id: task.id, status })}
-                      onPress={() =>
-                        router.push({ pathname: '/task/[id]', params: { id: task.id } })
-                      }
-                    />
-                  ))}
-                </Card.Content>
-              ) : null}
-            </Card>
-          );
-        })}
+        {members?.map((member) => (
+          <MemberCard
+            key={member.user_id}
+            member={member}
+            tasks={allTasks
+              .filter((task) => task.assigned_to === member.user_id)
+              .sort((a, b) => Number(a.status === 'done') - Number(b.status === 'done'))}
+            isMe={member.user_id === userId}
+            canChangeStatus={(task) => isManager || task.assigned_to === userId}
+            onChangeStatus={(task, status) => statusMutation.mutate({ id: task.id, status })}
+          />
+        ))}
       </ScrollView>
 
       <Snackbar visible={Boolean(statusMutation.error)} onDismiss={() => statusMutation.reset()}>
@@ -99,10 +145,11 @@ export default function GroupScreen() {
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { padding: 12, gap: 12 },
-  total: { textAlign: 'center' },
+  container: { padding: 16, gap: 16, paddingBottom: 32 },
   loader: { marginTop: 32 },
-  card: { overflow: 'hidden' },
-  cardContent: { paddingHorizontal: 0, gap: 4 },
-  progress: { height: 6, borderRadius: 3, marginHorizontal: 16, marginBottom: 4 },
+  card: { borderRadius: 24, borderWidth: 1, padding: 14, gap: 12 },
+  cardHeader: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  cardTitle: { flex: 1, gap: 2 },
+  progress: { height: 8, borderRadius: 4 },
+  tasks: { gap: 8 },
 });

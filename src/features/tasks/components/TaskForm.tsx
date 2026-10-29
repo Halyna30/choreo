@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { Button, Chip, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { Chip, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
+import { GradientButton } from '../../../components/GradientButton';
 import { getMemberName } from '../../groups/roles';
 import type { GroupMember } from '../../groups/types';
 import { formatFullDate } from '../dates';
@@ -156,9 +157,9 @@ export function TaskForm({
         {error}
       </HelperText>
 
-      <Button mode="contained" onPress={handleSubmit} loading={loading} disabled={loading}>
+      <GradientButton onPress={handleSubmit} loading={loading} disabled={loading}>
         {submitLabel}
-      </Button>
+      </GradientButton>
     </View>
   );
 }

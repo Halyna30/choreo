@@ -3,21 +3,25 @@ import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { useCurrentMembership } from '../../features/groups/hooks';
 import { toUserMessage } from '../../lib/errors';
+import { useStackOptions } from '../../lib/navigation';
+import { useAppTheme } from '../../lib/theme';
 
 export default function AppLayout() {
+  const theme = useAppTheme();
+  const stackOptions = useStackOptions();
   const { data: membership, isLoading, error, refetch } = useCurrentMembership();
 
   if (isLoading) {
     return (
-      <View style={styles.center}>
-        <ActivityIndicator size="large" />
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
+        <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
     );
   }
 
   if (error) {
     return (
-      <View style={styles.center}>
+      <View style={[styles.center, { backgroundColor: theme.colors.background }]}>
         <Text variant="bodyLarge">{toUserMessage(error)}</Text>
         <Button mode="contained" onPress={() => refetch()}>
           Spróbuj ponownie
@@ -29,7 +33,7 @@ export default function AppLayout() {
   const hasGroup = Boolean(membership);
 
   return (
-    <Stack>
+    <Stack screenOptions={stackOptions}>
       <Stack.Protected guard={hasGroup}>
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
         <Stack.Screen

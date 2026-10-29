@@ -1,4 +1,6 @@
-import { Avatar, List } from 'react-native-paper';
+import { List } from 'react-native-paper';
+import { MemberAvatar } from '../../../components/MemberAvatar';
+import { useAppTheme } from '../../../lib/theme';
 import { ROLE_LABELS, getMemberName } from '../roles';
 import type { GroupMember } from '../types';
 
@@ -9,6 +11,7 @@ type Props = {
 };
 
 export function MemberListItem({ member, isMe, onPress }: Props) {
+  const theme = useAppTheme();
   const name = getMemberName(member);
 
   const details = [
@@ -20,11 +23,11 @@ export function MemberListItem({ member, isMe, onPress }: Props) {
   return (
     <List.Item
       title={name}
+      titleStyle={theme.fonts.titleMedium}
       description={details.join(' · ')}
       onPress={onPress}
-      left={(props) => (
-        <Avatar.Text size={40} label={name.charAt(0).toUpperCase()} style={props.style} />
-      )}
+      style={{ paddingLeft: 12 }}
+      left={() => <MemberAvatar userId={member.user_id} name={name} />}
       right={onPress ? (props) => <List.Icon {...props} icon="chevron-right" /> : undefined}
     />
   );

@@ -1,7 +1,12 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
-import { Button, HelperText, Text, TextInput } from 'react-native-paper';
+import { Button, HelperText, TextInput } from 'react-native-paper';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { BrandHeader } from '../components/BrandHeader';
+import { GradientButton } from '../components/GradientButton';
+import { ScreenBackground } from '../components/ScreenBackground';
+import { SettingsButton } from '../components/SettingsButton';
 import {
   MIN_PASSWORD_LENGTH,
   getAuthErrorMessage,
@@ -56,78 +61,80 @@ export default function SignUpScreen() {
   }
 
   return (
-    <KeyboardAvoidingView
-      style={styles.flex}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
-      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-        <View style={styles.header}>
-          <Text variant="displaySmall" style={styles.logo}>
-            Choreo
-          </Text>
-          <Text variant="titleMedium">Utwórz konto</Text>
-        </View>
-
-        <TextInput
-          label="Imię"
-          mode="outlined"
-          value={displayName}
-          onChangeText={setDisplayName}
-          autoComplete="name"
-          textContentType="givenName"
-        />
-        <TextInput
-          label="E-mail"
-          mode="outlined"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-          autoComplete="email"
-          keyboardType="email-address"
-          textContentType="emailAddress"
-        />
-        <TextInput
-          label="Hasło"
-          mode="outlined"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry={!showPassword}
-          autoComplete="new-password"
-          textContentType="newPassword"
-          right={
-            <TextInput.Icon
-              icon={showPassword ? 'eye-off' : 'eye'}
-              onPress={() => setShowPassword((value) => !value)}
-            />
-          }
-          onSubmitEditing={handleSignUp}
-        />
-
-        <HelperText type="error" visible={Boolean(error)}>
-          {error}
-        </HelperText>
-        {info ? <HelperText type="info">{info}</HelperText> : null}
-
-        <Button
-          mode="contained"
-          onPress={handleSignUp}
-          loading={isSubmitting}
-          disabled={isSubmitting}
+    <ScreenBackground>
+      <SafeAreaView style={styles.flex}>
+        <SettingsButton />
+        <KeyboardAvoidingView
+          style={styles.flex}
+          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          Zarejestruj się
-        </Button>
+          <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+            <BrandHeader subtitle="Utwórz konto" />
 
-        <Link href="/sign-in" asChild>
-          <Button mode="text">Masz już konto? Zaloguj się</Button>
-        </Link>
-      </ScrollView>
-    </KeyboardAvoidingView>
+            <View style={styles.fields}>
+              <TextInput
+                label="Imię"
+                mode="outlined"
+                value={displayName}
+                onChangeText={setDisplayName}
+                left={<TextInput.Icon icon="account" />}
+                autoComplete="name"
+                textContentType="givenName"
+              />
+              <TextInput
+                label="E-mail"
+                mode="outlined"
+                value={email}
+                onChangeText={setEmail}
+                left={<TextInput.Icon icon="email" />}
+                autoCapitalize="none"
+                autoComplete="email"
+                keyboardType="email-address"
+                textContentType="emailAddress"
+              />
+              <TextInput
+                label="Hasło"
+                mode="outlined"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+                autoComplete="new-password"
+                textContentType="newPassword"
+                left={<TextInput.Icon icon="lock" />}
+                right={
+                  <TextInput.Icon
+                    icon={showPassword ? 'eye-off' : 'eye'}
+                    onPress={() => setShowPassword((value) => !value)}
+                  />
+                }
+                onSubmitEditing={handleSignUp}
+              />
+            </View>
+
+            <HelperText type="error" visible={Boolean(error)}>
+              {error}
+            </HelperText>
+            {info ? <HelperText type="info">{info}</HelperText> : null}
+
+            <GradientButton onPress={handleSignUp} loading={isSubmitting} disabled={isSubmitting}>
+              Zarejestruj się
+            </GradientButton>
+
+            <Link href="/sign-in" asChild>
+              <Button mode="text" style={styles.link}>
+                Masz już konto? Zaloguj się
+              </Button>
+            </Link>
+          </ScrollView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
+    </ScreenBackground>
   );
 }
 
 const styles = StyleSheet.create({
   flex: { flex: 1 },
-  container: { flexGrow: 1, justifyContent: 'center', padding: 24, gap: 12 },
-  header: { alignItems: 'center', gap: 4, marginBottom: 16 },
-  logo: { fontWeight: 'bold' },
+  container: { flexGrow: 1, justifyContent: 'center', padding: 24, paddingTop: 0 },
+  fields: { gap: 12 },
+  link: { marginTop: 12 },
 });
