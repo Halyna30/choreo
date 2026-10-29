@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "choreo",
+    "name": "Choreo",
     "slug": "choreo",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -23,17 +23,17 @@
     },
     "web": {
       "output": "single",
-  "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
       "expo-router",
       [
-  "expo-image-picker",
-  {
-    "photosPermission": "Choreo potrzebuje dostępu do zdjęć, aby ustawić Twój awatar.",
-    "cameraPermission": "Choreo potrzebuje aparatu, aby zrobić zdjęcie do awatara."
-  }
-],
+        "expo-image-picker",
+        {
+          "photosPermission": "Choreo potrzebuje dostępu do zdjęć, aby ustawić Twój awatar.",
+          "cameraPermission": "Choreo potrzebuje aparatu, aby zrobić zdjęcie do awatara."
+        }
+      ],
       [
         "expo-splash-screen",
         {
@@ -41,7 +41,9 @@
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 76
         }
-      ]
+      ],
+      "expo-image",
+      "expo-web-browser"
     ],
     "experiments": {
       "typedRoutes": true,
