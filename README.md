@@ -22,10 +22,17 @@ Every family argues about chores. Generic to-do apps don't handle the fact that 
 - **Groups with roles**
   - **Owner** – creates the group, invites members, manages roles
   - **Adult** – creates, edits and deletes tasks for everyone
-  - **Child** – sees the group's tasks and can only change the status of their own
+  - **Child** – sees only children's tasks (their own and their siblings') and can only change the status of their own
 - **Role-based invites** – one-time, 8-character codes that expire after 7 days; the role (and an optional label like "Mom" or "Grandpa") is set by the owner, not by the person joining
 - **Custom member labels** – display names inside the group, independent of permissions
-- **Daily tasks** with three statuses: *To do → In progress → Done*, switched with a single tap
+- **Daily tasks** with statuses *To do → In progress → Done*, switched with a single tap
+- **Group tasks** – a task for one person, for *anyone* (whoever starts first takes it), or for *everyone together*
+- **Parent approval** – when a child marks a task as done it waits for approval, and a parent confirms it with a tap
+- **Rewards** – children earn ⭐ stars and adults earn 👏 claps for approved tasks; children set goals and parents hand out the reward
+- **Recurring tasks** – every day or on selected weekdays, generated on demand for the opened day
+- **Task comments** – a conversation on each task, updated in real time
+- **Avatars** – a built-in avatar or a photo from the camera / gallery (Supabase Storage)
+- **Themes** – elegant, family and kids
 - **Group view** – every member's tasks and progress for the selected day
 - **Real-time sync** – when a child completes a task, the parent sees it within a second
 - **Day navigation** – yesterday / today / tomorrow and beyond
@@ -92,6 +99,11 @@ Each feature separates **API calls** (`api.ts`) from **TanStack Query hooks** (`
 | `group_members` | membership with a role (`owner` / `adult` / `child`) and an optional label |
 | `group_invites` | one-time invite codes with a role and expiry date |
 | `tasks` | a task assigned to a member for a specific day, with a status |
+| `task_participants` | members taking part in *anyone* / *together* tasks |
+| `task_templates` | recurring task definitions (weekdays, assignees) |
+| `task_comments` | comments on tasks |
+| `point_events` | stars and claps earned or spent |
+| `goals` | children's goals and their rewards |
 
 ## Getting started
 
@@ -128,11 +140,12 @@ Each feature separates **API calls** (`api.ts`) from **TanStack Query hooks** (`
 - [x] Authentication
 - [x] Groups, role-based invites, member management
 - [x] Daily tasks, statuses, group view, real-time sync
-- [ ] Recurring tasks (daily / selected weekdays)
+- [x] Recurring tasks (daily / selected weekdays)
+- [x] Rewards and task approval by a parent
+- [x] Android APK via EAS Build (internal distribution)
 - [ ] Push notifications and reminders
 - [ ] Tests: Jest + React Native Testing Library, Maestro end-to-end
-- [ ] Android release via EAS Build
-- [ ] Rewards and task approval by a parent
+- [ ] Google Play release
 
 ## Author
 
