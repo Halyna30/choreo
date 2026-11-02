@@ -1,5 +1,6 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ import {
 import { supabase } from '../lib/supabase';
 
 export default function SignUpScreen() {
+  const { t } = useTranslation();
   const [displayName, setDisplayName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -28,15 +30,15 @@ export default function SignUpScreen() {
     setInfo(null);
 
     if (!displayName.trim()) {
-      setError('Wpisz swoje imię.');
+      setError(t('auth.enterName'));
       return;
     }
     if (!isValidEmail(email)) {
-      setError('Wpisz poprawny adres e-mail.');
+      setError(t('auth.enterValidEmail'));
       return;
     }
     if (password.length < MIN_PASSWORD_LENGTH) {
-      setError(`Hasło musi mieć co najmniej ${MIN_PASSWORD_LENGTH} znaków.`);
+      setError(t('auth.passwordMin', { count: MIN_PASSWORD_LENGTH }));
       return;
     }
 
@@ -50,13 +52,13 @@ export default function SignUpScreen() {
     setIsSubmitting(false);
 
     if (signUpError) {
-      setError(getAuthErrorMessage(signUpError));
+      setError(getAuthErrorMessage(signUpError, t));
       return;
     }
 
     // Gdy potwierdzanie e-maila jest włączone, sesji jeszcze nie ma
     if (!data.session) {
-      setInfo('Sprawdź skrzynkę e-mail i kliknij link, aby potwierdzić konto.');
+      setInfo(t('auth.checkInbox'));
     }
   }
 
@@ -69,11 +71,11 @@ export default function SignUpScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-            <BrandHeader subtitle="Utwórz konto" />
+            <BrandHeader subtitle={t('auth.createAccount')} />
 
             <View style={styles.fields}>
               <TextInput
-                label="Imię"
+                label={t('auth.name')}
                 mode="outlined"
                 value={displayName}
                 onChangeText={setDisplayName}
@@ -82,7 +84,7 @@ export default function SignUpScreen() {
                 textContentType="givenName"
               />
               <TextInput
-                label="E-mail"
+                label={t('auth.email')}
                 mode="outlined"
                 value={email}
                 onChangeText={setEmail}
@@ -93,7 +95,7 @@ export default function SignUpScreen() {
                 textContentType="emailAddress"
               />
               <TextInput
-                label="Hasło"
+                label={t('auth.password')}
                 mode="outlined"
                 value={password}
                 onChangeText={setPassword}
@@ -117,12 +119,12 @@ export default function SignUpScreen() {
             {info ? <HelperText type="info">{info}</HelperText> : null}
 
             <GradientButton onPress={handleSignUp} loading={isSubmitting} disabled={isSubmitting}>
-              Zarejestruj się
+              {t('auth.signUp')}
             </GradientButton>
 
             <Link href="/sign-in" asChild>
               <Button mode="text" style={styles.link}>
-                Masz już konto? Zaloguj się
+                {t('auth.haveAccount')}
               </Button>
             </Link>
           </ScrollView>

@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { IconButton, Text } from 'react-native-paper';
 import { useAppTheme } from '../../../lib/theme';
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function DaySwitcher({ value, onChange }: Props) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const isToday = value === todayKey();
 
@@ -22,13 +24,13 @@ export function DaySwitcher({ value, onChange }: Props) {
       <IconButton
         icon="chevron-left"
         size={22}
-        accessibilityLabel="Poprzedni dzień"
+        accessibilityLabel={t('dates.previousDay')}
         onPress={() => onChange(addDays(value, -1))}
       />
       <Pressable
         onPress={() => onChange(todayKey())}
         accessibilityRole="button"
-        accessibilityHint="Wróć do dzisiejszego dnia"
+        accessibilityHint={t('dates.backToToday')}
         style={[
           styles.label,
           { backgroundColor: isToday ? theme.colors.primaryContainer : 'transparent' },
@@ -38,13 +40,13 @@ export function DaySwitcher({ value, onChange }: Props) {
           variant="titleMedium"
           style={{ color: isToday ? theme.colors.onPrimaryContainer : theme.colors.onSurface }}
         >
-          {formatDayLabel(value)}
+          {formatDayLabel(value, t)}
         </Text>
       </Pressable>
       <IconButton
         icon="chevron-right"
         size={22}
-        accessibilityLabel="Następny dzień"
+        accessibilityLabel={t('dates.nextDay')}
         onPress={() => onChange(addDays(value, 1))}
       />
     </View>

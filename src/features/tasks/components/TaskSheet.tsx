@@ -1,5 +1,7 @@
 import { router } from 'expo-router';
+import type { TFunction } from 'i18next';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Modal,
@@ -34,7 +36,7 @@ import { getMemberName } from '../../groups/roles';
 import type { GroupMember } from '../../groups/types';
 import { canChangeTaskStatus, describeAssignees, isTaskPerson } from '../assignees';
 import { formatFullDate, todayKey, toDateKey } from '../dates';
-import { STATUS_META } from '../status';
+import { STATUS_ICONS, statusLabel } from '../status';
 import type { Task, TaskStatus } from '../types';
 
 const STATUSES: TaskStatus[] = ['todo', 'in_progress', 'done'];
@@ -47,15 +49,17 @@ type Props = {
   onDismiss: () => void;
 };
 
-function formatCommentTime(iso: string): string {
+function formatCommentTime(iso: string, t: TFunction): string {
+  const locale = t('meta.dateLocale');
   const date = new Date(iso);
-  const time = date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  const time = date.toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
   if (toDateKey(date) === todayKey()) return time;
-  return `${date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}, ${time}`;
+  return `${date.toLocaleDateString(locale, { day: 'numeric', month: 'short' })}, ${time}`;
 }
 
 // Okienko zadania otwierane na tym samym ekranie: status, zatwierdzanie i komentarze
 export function TaskSheet({ task, members, isManager, onChangeStatus, onDismiss }: Props) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const insets = useSafeAreaInsets();
 
@@ -65,7 +69,11 @@ export function TaskSheet({ task, members, isManager, onChangeStatus, onDismiss 
         style={styles.flex}
         behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <Pressable style={styles.backdrop} onPress={onDismiss} accessibilityLabel="Zamknij" />
+        <Pressable
+          style={styles.backdrop}
+          onPress={onDismiss}
+          accessibilityLabel={t('common.close')}
+        />
         <View
           style={[
             styles.sheet,
@@ -91,6 +99,7 @@ export function TaskSheet({ task, members, isManager, onChangeStatus, onDismiss 
 }
 
 function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: Props & { task: Task }) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -113,7 +122,7 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
 
   function nameOf(id: string) {
     const member = memberById(id);
-    return member ? getMemberName(member) : '—';
+    return member ? getMemberName(member, t) : '—';
   }
 
   function handleSend() {
@@ -135,15 +144,15 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
           <Text variant="headlineSmall">{task.title}</Text>
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
             {[
-              describeAssignees(task, nameOf),
-              formatFullDate(task.due_date),
+              describeAssignees(task, nameOf, t),
+              formatFullDate(task.due_date, t),
               task.template_id ? '🔁' : null,
             ]
               .filter(Boolean)
               .join(' · ')}
           </Text>
         </View>
-        <IconButton icon="close" onPress={onDismiss} accessibilityLabel="Zamknij" />
+        <IconButton icon="close" onPress={onDismiss} accessibilityLabel={t('common.close')} />
       </View>
 
       {task.description ? <Text variant="bodyLarge">{task.description}</Text> : null}
@@ -156,8 +165,10 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
             style={[styles.flex, { color: theme.colors.onSecondaryContainer }]}
           >
             {isManager
-              ? `${task.completed_by ? nameOf(task.completed_by) : 'Dziecko'} oznacza zadanie jako zrobione. Zatwierdzasz?`
-              : 'Super! Czekamy, aż rodzic zatwierdzi zadanie ⭐'}
+              ? t('sheet.childMarkedDone', {
+                  name: task.completed_by ? nameOf(task.completed_by) : t('common.child'),
+                })
+              : t('sheet.waitingForParent')}
           </Text>
         </View>
       ) : null}
@@ -172,7 +183,7 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
             textColor={theme.colors.onSuccess}
             onPress={() => onChangeStatus(task, 'done')}
           >
-            Zatwierdź
+            {t('sheet.approve')}
           </Button>
           <Button
             mode="outlined"
@@ -180,7 +191,7 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
             style={styles.flex}
             onPress={() => onChangeStatus(task, 'in_progress')}
           >
-            Do poprawy
+            {t('sheet.sendBack')}
           </Button>
         </View>
       ) : (
@@ -190,8 +201,8 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
           onValueChange={(value) => onChangeStatus(task, value as TaskStatus)}
           buttons={STATUSES.map((status) => ({
             value: status,
-            label: STATUS_META[status].label,
-            icon: STATUS_META[status].icon,
+            label: statusLabel(status, t),
+            icon: STATUS_ICONS[status],
             disabled: !canChangeStatus,
           }))}
         />
@@ -199,24 +210,24 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
 
       {task.status === 'done' && !isManager && isMine ? (
         <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-          Zadanie zatwierdzone – gwiazdka jest Twoja ⭐
+          {t('sheet.starIsYours')}
         </Text>
       ) : null}
 
       <Text variant="titleMedium" style={styles.commentsTitle}>
-        Komentarze
+        {t('sheet.comments')}
       </Text>
 
       <ScrollView style={styles.comments} contentContainerStyle={styles.commentsContent}>
         {isLoading ? <ActivityIndicator color={theme.colors.primary} /> : null}
         {!isLoading && comments?.length === 0 ? (
           <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-            Brak komentarzy.
+            {t('sheet.noComments')}
           </Text>
         ) : null}
         {comments?.map((comment) => {
           const author = memberById(comment.author_id);
-          const authorName = author ? getMemberName(author) : 'Członek grupy';
+          const authorName = author ? getMemberName(author, t) : t('common.groupMember');
           const isOwn = comment.author_id === userId;
           return (
             <View key={comment.id} style={styles.comment}>
@@ -239,7 +250,7 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
                 <View style={styles.bubbleHeader}>
                   <Text variant="labelMedium">{authorName}</Text>
                   <Text variant="labelSmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    {formatCommentTime(comment.created_at)}
+                    {formatCommentTime(comment.created_at, t)}
                   </Text>
                 </View>
                 <Text variant="bodyMedium">{comment.body}</Text>
@@ -248,7 +259,7 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
                 <IconButton
                   icon="delete-outline"
                   size={18}
-                  accessibilityLabel="Usuń komentarz"
+                  accessibilityLabel={t('sheet.deleteComment')}
                   disabled={deleteComment.isPending}
                   onPress={() => deleteComment.mutate(comment.id)}
                 />
@@ -262,7 +273,7 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
         <View style={styles.inputRow}>
           <TextInput
             mode="outlined"
-            placeholder="Napisz komentarz…"
+            placeholder={t('sheet.commentPlaceholder')}
             value={body}
             onChangeText={setBody}
             maxLength={500}
@@ -277,24 +288,22 @@ function SheetContent({ task, members, isManager, onChangeStatus, onDismiss }: P
             iconColor={theme.colors.onPrimary}
             disabled={!body.trim() || addComment.isPending}
             onPress={handleSend}
-            accessibilityLabel="Wyślij komentarz"
+            accessibilityLabel={t('sheet.sendComment')}
           />
         </View>
       ) : (
         <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-          {isMine
-            ? 'Komentarz dodasz, gdy zaczniesz zadanie albo je skończysz.'
-            : 'Możesz komentować tylko swoje zadania.'}
+          {isMine ? t('sheet.commentWhenStarted') : t('sheet.commentOwnOnly')}
         </Text>
       )}
 
       <HelperText type="error" visible={Boolean(error)}>
-        {error ? toUserMessage(error) : null}
+        {error ? toUserMessage(error, t) : null}
       </HelperText>
 
       {isManager ? (
         <Button mode="outlined" icon="pencil" onPress={handleEdit}>
-          Edytuj zadanie
+          {t('sheet.edit')}
         </Button>
       ) : null}
     </View>

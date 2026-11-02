@@ -1,3 +1,5 @@
+// Tłumaczenia muszą być gotowe, zanim wyrenderuje się pierwszy ekran
+import '../i18n';
 import {
   Nunito_400Regular,
   Nunito_600SemiBold,
@@ -10,6 +12,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useColorScheme } from 'react-native';
 import { PaperProvider } from 'react-native-paper';
 import { AuthProvider, useAuth } from '../features/auth/AuthProvider';
@@ -22,6 +25,7 @@ import { buildTheme } from '../lib/theme';
 SplashScreen.preventAutoHideAsync();
 
 function RootNavigator({ assetsReady }: { assetsReady: boolean }) {
+  const { t } = useTranslation();
   const { session, isLoading } = useAuth();
   const stackOptions = useStackOptions();
   const isLoggedIn = Boolean(session);
@@ -46,10 +50,10 @@ function RootNavigator({ assetsReady }: { assetsReady: boolean }) {
         <Stack.Screen name="sign-in" />
         <Stack.Screen name="sign-up" />
       </Stack.Protected>
-      {/* Wygląd można zmienić zawsze, także przed zalogowaniem */}
+      {/* Wygląd i język można zmienić zawsze, także przed zalogowaniem */}
       <Stack.Screen
         name="settings"
-        options={{ headerShown: true, title: 'Wygląd', presentation: 'modal' }}
+        options={{ headerShown: true, title: t('nav.settings'), presentation: 'modal' }}
       />
     </Stack>
   );

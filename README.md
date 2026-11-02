@@ -33,6 +33,7 @@ Every family argues about chores. Generic to-do apps don't handle the fact that 
 - **Task comments** – a conversation on each task, updated in real time
 - **Avatars** – a built-in avatar or a photo from the camera / gallery (Supabase Storage)
 - **Themes** – elegant, family and kids
+- **Four languages** – Polish (default), English, Ukrainian and Spanish, switchable at any time, even before signing in
 - **Group view** – every member's tasks and progress for the selected day
 - **Real-time sync** – when a child completes a task, the parent sees it within a second
 - **Day navigation** – yesterday / today / tomorrow and beyond
@@ -45,6 +46,7 @@ Every family argues about chores. Generic to-do apps don't handle the fact that 
 | App | React Native, Expo, Expo Router (file-based routing), TypeScript |
 | UI | React Native Paper (Material Design 3) |
 | Server state | TanStack Query |
+| Translations | i18next, react-i18next |
 | Backend | Supabase: PostgreSQL, Auth, Realtime, Row Level Security |
 | Code quality | ESLint, Prettier |
 
@@ -65,6 +67,9 @@ Expo Router's `Stack.Protected` switches screens automatically on two levels: si
 **Dates without the UTC trap.**
 Task days are stored as local `YYYY-MM-DD` keys instead of `toISOString()`, which can shift a date by one day around midnight.
 
+**Type-safe translations.**
+Polish is the source locale; the other languages are typed against it, so a missing or misspelled key fails `tsc`. Plural forms (e.g. Polish and Ukrainian *one / few / many*) use `Intl.PluralRules`, and dates are formatted with the selected language's locale. Error messages raised by database functions are mapped to translation keys in the app, so no migration is needed to translate them.
+
 **Versioned database schema.**
 The schema is kept as SQL migrations in [`supabase/migrations`](supabase/migrations), and new features are added as new migrations rather than by editing old ones.
 
@@ -84,6 +89,7 @@ src/
 │   ├── groups/             # API, query hooks, roles
 │   └── tasks/              # API, query hooks, realtime, dates, components
 ├── components/             # shared UI
+├── i18n/                   # i18next setup and locales (pl, en, uk, es)
 └── lib/                    # Supabase client, query client, theme
 supabase/migrations/        # database schema, RLS policies, functions
 ```

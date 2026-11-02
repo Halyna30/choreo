@@ -1,5 +1,6 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -11,6 +12,7 @@ import { getAuthErrorMessage, isValidEmail } from '../features/auth/authErrors';
 import { supabase } from '../lib/supabase';
 
 export default function SignInScreen() {
+  const { t } = useTranslation();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
@@ -21,11 +23,11 @@ export default function SignInScreen() {
     setError(null);
 
     if (!isValidEmail(email)) {
-      setError('Wpisz poprawny adres e-mail.');
+      setError(t('auth.enterValidEmail'));
       return;
     }
     if (!password) {
-      setError('Wpisz hasło.');
+      setError(t('auth.enterPassword'));
       return;
     }
 
@@ -37,7 +39,7 @@ export default function SignInScreen() {
     setIsSubmitting(false);
 
     if (signInError) {
-      setError(getAuthErrorMessage(signInError));
+      setError(getAuthErrorMessage(signInError, t));
     }
     // Po udanym logowaniu AuthProvider dostaje sesję, a nawigacja sama przełącza ekrany
   }
@@ -51,11 +53,11 @@ export default function SignInScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-            <BrandHeader subtitle="Zaloguj się" />
+            <BrandHeader subtitle={t('auth.signIn')} />
 
             <View style={styles.fields}>
               <TextInput
-                label="E-mail"
+                label={t('auth.email')}
                 mode="outlined"
                 value={email}
                 onChangeText={setEmail}
@@ -66,7 +68,7 @@ export default function SignInScreen() {
                 textContentType="emailAddress"
               />
               <TextInput
-                label="Hasło"
+                label={t('auth.password')}
                 mode="outlined"
                 value={password}
                 onChangeText={setPassword}
@@ -89,12 +91,12 @@ export default function SignInScreen() {
             </HelperText>
 
             <GradientButton onPress={handleSignIn} loading={isSubmitting} disabled={isSubmitting}>
-              Zaloguj się
+              {t('auth.signIn')}
             </GradientButton>
 
             <Link href="/sign-up" asChild>
               <Button mode="text" style={styles.link}>
-                Nie masz konta? Zarejestruj się
+                {t('auth.noAccount')}
               </Button>
             </Link>
           </ScrollView>

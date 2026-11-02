@@ -1,11 +1,12 @@
 import { router } from 'expo-router';
+import type { TFunction } from 'i18next';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Button, HelperText, ProgressBar, Text } from 'react-native-paper';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { SectionCard } from '../../../components/SectionCard';
 import { toUserMessage } from '../../../lib/errors';
-import { plural } from '../../../lib/plural';
 import { useAppTheme } from '../../../lib/theme';
 import type { Goal } from '../api';
 import { useGoals, useRedeemGoal } from '../hooks';
@@ -19,8 +20,8 @@ type Props = {
   ownerName?: string;
 };
 
-export function starsLabel(count: number): string {
-  return `${count} ${plural(count, 'gwiazdka', 'gwiazdki', 'gwiazdek')}`;
+export function starsLabel(count: number, t: TFunction): string {
+  return t('rewards.stars', { count });
 }
 
 function GoalRow({
@@ -36,6 +37,7 @@ function GoalRow({
   canRedeem: boolean;
   onRedeem: (goal: Goal) => void;
 }) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const progress = Math.min(stars / goal.stars_needed, 1);
   const reached = stars >= goal.stars_needed;
@@ -72,16 +74,16 @@ function GoalRow({
               style={styles.redeem}
               onPress={() => onRedeem(goal)}
             >
-              Nagroda wręczona
+              {t('goals.rewardGiven')}
             </Button>
           ) : (
             <Text variant="bodySmall" style={{ color: theme.colors.success }}>
-              Cel osiągnięty! Poproś rodzica o nagrodę 🎉
+              {t('goals.reached')}
             </Text>
           )
         ) : (
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-            Jeszcze {starsLabel(goal.stars_needed - stars)}
+            {t('goals.remaining', { stars: starsLabel(goal.stars_needed - stars, t) })}
           </Text>
         )}
       </View>
@@ -91,6 +93,7 @@ function GoalRow({
 
 // Cele z gwiazdkami: postęp, dodawanie (dziecko) i wręczanie nagród (rodzic)
 export function GoalsSection({ groupId, userId, stars, isOwn, canRedeem, ownerName }: Props) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const { data: goals } = useGoals(groupId);
   const redeemGoal = useRedeemGoal(groupId);
@@ -106,13 +109,11 @@ export function GoalsSection({ groupId, userId, stars, isOwn, canRedeem, ownerNa
   if (!isOwn && active.length === 0 && redeemed.length === 0) return null;
 
   return (
-    <SectionCard title={isOwn ? 'Moje cele' : `Cele: ${ownerName ?? ''}`}>
+    <SectionCard title={isOwn ? t('goals.mine') : t('goals.of', { name: ownerName ?? '' })}>
       <View style={styles.list}>
         {active.length === 0 ? (
           <Text variant="bodyMedium" style={[styles.empty, { color: theme.colors.onSurfaceVariant }]}>
-            {isOwn
-              ? 'Wymyśl, na co zbierasz gwiazdki – np. kino, lody albo nowa gra 🎯'
-              : 'Brak aktywnych celów.'}
+            {isOwn ? t('goals.emptyOwn') : t('goals.empty')}
           </Text>
         ) : null}
 
@@ -130,13 +131,13 @@ export function GoalsSection({ groupId, userId, stars, isOwn, canRedeem, ownerNa
         {redeemed.map((goal) => (
           <View key={goal.id} style={styles.redeemedRow}>
             <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-              {goal.emoji} {goal.title} – wręczone 🎉
+              {t('goals.redeemed', { goal: `${goal.emoji} ${goal.title}` })}
             </Text>
           </View>
         ))}
 
         <HelperText type="error" visible={Boolean(redeemGoal.error)}>
-          {redeemGoal.error ? toUserMessage(redeemGoal.error) : null}
+          {redeemGoal.error ? toUserMessage(redeemGoal.error, t) : null}
         </HelperText>
 
         {isOwn ? (
@@ -146,20 +147,23 @@ export function GoalsSection({ groupId, userId, stars, isOwn, canRedeem, ownerNa
             onPress={() => router.push('/goal/edit')}
             style={styles.add}
           >
-            Nowy cel
+            {t('goals.new')}
           </Button>
         ) : null}
       </View>
 
       <ConfirmDialog
         visible={Boolean(toRedeem)}
-        title="Wręczyć nagrodę?"
+        title={t('goals.confirmRedeem')}
         message={
           toRedeem
-            ? `„${toRedeem.emoji} ${toRedeem.title}” – od salda odejmie się ${starsLabel(toRedeem.stars_needed)}.`
+            ? t('goals.redeemMessage', {
+                goal: `${toRedeem.emoji} ${toRedeem.title}`,
+                stars: starsLabel(toRedeem.stars_needed, t),
+              })
             : ''
         }
-        confirmLabel="Wręczam 🎁"
+        confirmLabel={t('goals.redeemConfirm')}
         loading={redeemGoal.isPending}
         onConfirm={() =>
           toRedeem &&

@@ -1,3 +1,4 @@
+import type { TFunction } from 'i18next';
 import type { Task, TaskAssignment } from './types';
 
 // Czy zadanie dotyczy danej osoby (pokazujemy je na jej liście)
@@ -52,11 +53,14 @@ export function assigneeIdsOf(item: {
 export function describeAssignees(
   item: { assignment: TaskAssignment; assigned_to: string | null; participant_ids: string[] },
   nameOf: (userId: string) => string,
+  t: TFunction,
 ): string {
   if (item.assignment === 'single') {
     return item.assigned_to ? nameOf(item.assigned_to) : '—';
   }
   const names = item.participant_ids.map(nameOf).join(', ');
-  if (item.assignment === 'together') return `Razem: ${names}`;
-  return item.assigned_to ? `${nameOf(item.assigned_to)} (przejęte)` : `Ktokolwiek: ${names}`;
+  if (item.assignment === 'together') return t('assignees.together', { names });
+  return item.assigned_to
+    ? t('assignees.taken', { name: nameOf(item.assigned_to) })
+    : t('assignees.anyone', { names });
 }

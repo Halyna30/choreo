@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -15,6 +16,7 @@ import { useAppTheme } from '../../lib/theme';
 type Mode = 'create' | 'join';
 
 export default function OnboardingScreen() {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const [mode, setMode] = useState<Mode>('create');
   const [groupName, setGroupName] = useState('');
@@ -26,7 +28,7 @@ export default function OnboardingScreen() {
   const joinGroup = useJoinGroup();
   const activeMutation = mode === 'create' ? createGroup : joinGroup;
   const error =
-    validationError ?? (activeMutation.error ? toUserMessage(activeMutation.error) : null);
+    validationError ?? (activeMutation.error ? toUserMessage(activeMutation.error, t) : null);
 
   function handleModeChange(value: string) {
     setMode(value as Mode);
@@ -38,7 +40,7 @@ export default function OnboardingScreen() {
   function handleCreate() {
     setValidationError(null);
     if (!groupName.trim()) {
-      setValidationError('Wpisz nazwę grupy.');
+      setValidationError(t('onboarding.enterGroupName'));
       return;
     }
     // Po sukcesie lista członkostw się odświeży, a nawigacja sama przejdzie do zakładek
@@ -48,7 +50,7 @@ export default function OnboardingScreen() {
   function handleJoin() {
     setValidationError(null);
     if (code.trim().length !== 8) {
-      setValidationError('Kod zaproszenia ma 8 znaków.');
+      setValidationError(t('onboarding.codeLength'));
       return;
     }
     joinGroup.mutate(code);
@@ -68,7 +70,7 @@ export default function OnboardingScreen() {
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
           <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
-            <BrandHeader subtitle="Witaj! Zacznijmy od Twojej grupy" />
+            <BrandHeader subtitle={t('onboarding.welcome')} />
 
             <View
               style={[
@@ -80,16 +82,16 @@ export default function OnboardingScreen() {
                 value={mode}
                 onValueChange={handleModeChange}
                 buttons={[
-                  { value: 'create', label: 'Utwórz grupę', icon: 'account-group' },
-                  { value: 'join', label: 'Mam kod', icon: 'key' },
+                  { value: 'create', label: t('onboarding.createGroup'), icon: 'account-group' },
+                  { value: 'join', label: t('onboarding.haveCode'), icon: 'key' },
                 ]}
               />
 
               {mode === 'create' ? (
                 <View style={styles.form}>
                   <TextInput
-                    label="Nazwa grupy"
-                    placeholder="np. Rodzina Kowalskich"
+                    label={t('onboarding.groupName')}
+                    placeholder={t('onboarding.groupNamePlaceholder')}
                     mode="outlined"
                     value={groupName}
                     onChangeText={setGroupName}
@@ -97,8 +99,8 @@ export default function OnboardingScreen() {
                     maxLength={60}
                   />
                   <TextInput
-                    label="Twoja etykieta (opcjonalnie)"
-                    placeholder="np. Mama"
+                    label={t('onboarding.myLabel')}
+                    placeholder={t('onboarding.myLabelPlaceholder')}
                     mode="outlined"
                     value={myLabel}
                     onChangeText={setMyLabel}
@@ -106,14 +108,14 @@ export default function OnboardingScreen() {
                     maxLength={30}
                   />
                   <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    Zostaniesz zarządcą grupy i zaprosisz pozostałych członków.
+                    {t('onboarding.ownerHint')}
                   </Text>
                 </View>
               ) : (
                 <View style={styles.form}>
                   <TextInput
-                    label="Kod zaproszenia"
-                    placeholder="np. A1B2C3D4"
+                    label={t('onboarding.inviteCode')}
+                    placeholder={t('onboarding.inviteCodePlaceholder')}
                     mode="outlined"
                     value={code}
                     onChangeText={(text) => setCode(text.toUpperCase())}
@@ -123,7 +125,7 @@ export default function OnboardingScreen() {
                     maxLength={8}
                   />
                   <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                    Kod dostaniesz od osoby, która zarządza grupą.
+                    {t('onboarding.codeHint')}
                   </Text>
                 </View>
               )}
@@ -137,12 +139,12 @@ export default function OnboardingScreen() {
                 loading={activeMutation.isPending}
                 disabled={activeMutation.isPending}
               >
-                {mode === 'create' ? 'Utwórz grupę' : 'Dołącz do grupy'}
+                {mode === 'create' ? t('onboarding.createGroup') : t('onboarding.joinGroup')}
               </GradientButton>
             </View>
 
             <Button mode="text" onPress={handleSignOut} style={styles.signOut}>
-              Wyloguj się
+              {t('common.signOut')}
             </Button>
           </ScrollView>
         </KeyboardAvoidingView>

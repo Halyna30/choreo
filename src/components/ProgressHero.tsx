@@ -1,6 +1,7 @@
+import type { TFunction } from 'i18next';
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { ProgressBar, Text } from 'react-native-paper';
-import { plural } from '../lib/plural';
 import { useAppTheme } from '../lib/theme';
 
 type Props = {
@@ -10,16 +11,17 @@ type Props = {
   total: number;
 };
 
-function motivation(done: number, total: number): string {
-  if (total === 0) return 'Wolny dzień – brak zadań 🎉';
-  if (done === total) return 'Wszystko zrobione, brawo! 🌟';
+function motivation(done: number, total: number, t: TFunction): string {
+  if (total === 0) return t('progress.freeDay');
+  if (done === total) return t('progress.allDone');
   const left = total - done;
-  if (done === 0) return `Do zrobienia: ${left} ${plural(left, 'zadanie', 'zadania', 'zadań')} 💪`;
-  return `Jeszcze ${left} ${plural(left, 'zadanie', 'zadania', 'zadań')} – dasz radę! 💪`;
+  if (done === 0) return t('progress.toDo', { count: left });
+  return t('progress.left', { count: left });
 }
 
 // Kolorowa karta z powitaniem i postępem dnia
 export function ProgressHero({ title, subtitle, done, total }: Props) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const color = theme.colors.onPrimaryContainer;
 
@@ -48,7 +50,7 @@ export function ProgressHero({ title, subtitle, done, total }: Props) {
       ) : null}
 
       <Text variant="bodyMedium" style={{ color }}>
-        {motivation(done, total)}
+        {motivation(done, total, t)}
       </Text>
     </View>
   );

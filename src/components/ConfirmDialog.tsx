@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { Button, Dialog, Portal, Text, useTheme } from 'react-native-paper';
 
 type Props = {
@@ -21,6 +22,7 @@ export function ConfirmDialog({
   onConfirm,
   onDismiss,
 }: Props) {
+  const { t } = useTranslation();
   const theme = useTheme();
 
   return (
@@ -32,7 +34,7 @@ export function ConfirmDialog({
         </Dialog.Content>
         <Dialog.Actions>
           <Button onPress={onDismiss} disabled={loading}>
-            Anuluj
+            {t('common.cancel')}
           </Button>
           <Button
             onPress={onConfirm}

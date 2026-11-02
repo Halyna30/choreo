@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Chip, Divider, Icon, List, Text } from 'react-native-paper';
 import { MemberAvatar } from '../../../components/MemberAvatar';
@@ -7,7 +8,7 @@ import { SectionCard } from '../../../components/SectionCard';
 import { useAuth } from '../../../features/auth/AuthProvider';
 import { MemberListItem } from '../../../features/groups/components/MemberListItem';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
-import { ROLE_LABELS, canManageTasks } from '../../../features/groups/roles';
+import { canManageTasks, roleLabel } from '../../../features/groups/roles';
 import { GoalsSection } from '../../../features/points/components/GoalsSection';
 import { RewardsBanner } from '../../../features/points/components/RewardsBanner';
 import { usePointBalances } from '../../../features/points/hooks';
@@ -16,6 +17,7 @@ import { supabase } from '../../../lib/supabase';
 import { useAppTheme } from '../../../lib/theme';
 
 export default function ProfileScreen() {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const { session } = useAuth();
   const { data: membership } = useCurrentMembership();
@@ -23,7 +25,7 @@ export default function ProfileScreen() {
   const [isSigningOut, setIsSigningOut] = useState(false);
 
   const user = session?.user;
-  const displayName: string = user?.user_metadata?.display_name ?? 'Użytkownik';
+  const displayName: string = user?.user_metadata?.display_name ?? t('profile.fallbackName');
   const shownName = membership?.label || displayName;
   const isOwner = membership?.role === 'owner';
   const isManager = canManageTasks(membership?.role);
@@ -49,7 +51,7 @@ export default function ProfileScreen() {
         <Pressable
           onPress={() => router.push('/avatar')}
           accessibilityRole="button"
-          accessibilityLabel="Zmień awatar"
+          accessibilityLabel={t('profile.changeAvatar')}
         >
           <MemberAvatar
             userId={user?.id}
@@ -74,7 +76,7 @@ export default function ProfileScreen() {
         </Text>
         {membership ? (
           <Chip icon="shield-account" compact style={{ backgroundColor: theme.colors.surface }}>
-            {ROLE_LABELS[membership.role]}
+            {roleLabel(membership.role, t)}
           </Chip>
         ) : null}
       </View>
@@ -97,7 +99,7 @@ export default function ProfileScreen() {
         />
       ) : null}
 
-      <SectionCard title={`Grupa: ${membership?.group.name ?? ''}`}>
+      <SectionCard title={t('profile.groupTitle', { name: membership?.group.name ?? '' })}>
         {membersLoading ? (
           <ActivityIndicator style={styles.loader} color={theme.colors.primary} />
         ) : (
@@ -119,7 +121,7 @@ export default function ProfileScreen() {
           <>
             <Divider />
             <List.Item
-              title="Zaproś do grupy"
+              title={t('profile.invite')}
               titleStyle={{ color: theme.colors.primary, fontFamily: theme.fonts.titleMedium.fontFamily }}
               left={(props) => (
                 <List.Icon {...props} icon="account-plus" color={theme.colors.primary} />
@@ -130,33 +132,33 @@ export default function ProfileScreen() {
         ) : null}
       </SectionCard>
 
-      <SectionCard title="Ustawienia">
+      <SectionCard title={t('profile.settings')}>
         <List.Item
-          title="Awatar"
-          description="Zdjęcie albo gotowa postać"
+          title={t('profile.avatar')}
+          description={t('profile.avatarDescription')}
           left={(props) => <List.Icon {...props} icon="account-circle" />}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
           onPress={() => router.push('/avatar')}
         />
         <Divider />
         <List.Item
-          title="Zadania cykliczne"
-          description="Codzienne i cotygodniowe obowiązki"
+          title={t('profile.templates')}
+          description={t('profile.templatesDescription')}
           left={(props) => <List.Icon {...props} icon="repeat" />}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
           onPress={() => router.push('/templates')}
         />
         <Divider />
         <List.Item
-          title="Wygląd"
-          description="Motyw i tryb jasny lub ciemny"
+          title={t('profile.appearance')}
+          description={t('profile.appearanceDescription')}
           left={(props) => <List.Icon {...props} icon="palette" />}
           right={(props) => <List.Icon {...props} icon="chevron-right" />}
           onPress={() => router.push('/settings')}
         />
         <Divider />
         <List.Item
-          title={isSigningOut ? 'Wylogowywanie…' : 'Wyloguj się'}
+          title={isSigningOut ? t('common.signingOut') : t('common.signOut')}
           titleStyle={{ color: theme.colors.error }}
           left={(props) => <List.Icon {...props} icon="logout" color={theme.colors.error} />}
           onPress={isSigningOut ? undefined : handleSignOut}

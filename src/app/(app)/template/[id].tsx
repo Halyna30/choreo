@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Divider, HelperText, Text } from 'react-native-paper';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -16,6 +17,7 @@ import { repeatModeFromWeekdays, weekdaysFromForm } from '../../../features/task
 import { toUserMessage } from '../../../lib/errors';
 
 export default function TemplateScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: membership } = useCurrentMembership();
   const groupId = membership?.group_id;
@@ -33,7 +35,7 @@ export default function TemplateScreen() {
   if (!template || !members) {
     return (
       <View style={styles.container}>
-        <Text variant="bodyLarge">To powtarzanie nie istnieje albo zostało usunięte.</Text>
+        <Text variant="bodyLarge">{t('templates.notFound')}</Text>
       </View>
     );
   }
@@ -41,7 +43,7 @@ export default function TemplateScreen() {
   if (!canManageTasks(membership?.role)) {
     return (
       <View style={styles.container}>
-        <Text variant="bodyLarge">Tylko zarządca i dorośli mogą zmieniać powtarzanie.</Text>
+        <Text variant="bodyLarge">{t('templates.managersOnly')}</Text>
       </View>
     );
   }
@@ -51,9 +53,7 @@ export default function TemplateScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       {!template.is_active ? (
-        <HelperText type="info">
-          ⏸ Powtarzanie jest wstrzymane – nowe zadania się nie tworzą.
-        </HelperText>
+        <HelperText type="info">{t('templates.pausedInfo')}</HelperText>
       ) : null}
 
       <TaskForm
@@ -69,9 +69,9 @@ export default function TemplateScreen() {
         }}
         members={members}
         repeatMode="required"
-        submitLabel="Zapisz powtarzanie"
+        submitLabel={t('templates.save')}
         loading={updateTemplate.isPending}
-        serverError={error ? toUserMessage(error) : null}
+        serverError={error ? toUserMessage(error, t) : null}
         onSubmit={(values) =>
           updateTemplate.mutate(
             {
@@ -88,10 +88,7 @@ export default function TemplateScreen() {
         }
       />
 
-      <HelperText type="info">
-        Zmiany obejmą przyszłe zadania, których nikt jeszcze nie zaczął. Zrobione zadania zostają w
-        historii.
-      </HelperText>
+      <HelperText type="info">{t('templates.changesHint')}</HelperText>
 
       <Divider style={styles.divider} />
 
@@ -102,18 +99,18 @@ export default function TemplateScreen() {
         disabled={updateTemplate.isPending}
         onPress={() => updateTemplate.mutate({ id: template.id, isActive: !template.is_active })}
       >
-        {template.is_active ? 'Wstrzymaj powtarzanie' : 'Wznów powtarzanie'}
+        {template.is_active ? t('templates.pause') : t('templates.resume')}
       </Button>
 
       <Button mode="text" icon="delete-outline" onPress={() => setConfirmVisible(true)}>
-        Usuń powtarzanie
+        {t('templates.delete')}
       </Button>
 
       <ConfirmDialog
         visible={confirmVisible}
-        title="Usunąć powtarzanie?"
-        message={`Przyszłe zadania „${template.title}” znikną. Zadania z przeszłości i już rozpoczęte zostaną.`}
-        confirmLabel="Usuń"
+        title={t('templates.confirmDelete')}
+        message={t('templates.deleteMessage', { title: template.title })}
+        confirmLabel={t('common.delete')}
         destructive
         loading={deleteTemplate.isPending}
         onConfirm={() =>

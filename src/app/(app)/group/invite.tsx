@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, Share, StyleSheet, View } from 'react-native';
 import {
   Button,
@@ -16,11 +17,12 @@ import {
   useCurrentMembership,
   useDeleteInvite,
 } from '../../../features/groups/hooks';
-import { ROLE_LABELS, formatDate } from '../../../features/groups/roles';
+import { formatDate, roleLabel } from '../../../features/groups/roles';
 import type { GroupInvite, InviteRole } from '../../../features/groups/types';
 import { toUserMessage } from '../../../lib/errors';
 
 export default function InviteScreen() {
+  const { t } = useTranslation();
   const { data: membership } = useCurrentMembership();
   const groupId = membership?.group_id;
   const groupName = membership?.group.name ?? '';
@@ -47,9 +49,11 @@ export default function InviteScreen() {
   }
 
   async function handleShare(invite: GroupInvite) {
-    const message =
-      `Dołącz do grupy „${groupName}” w aplikacji Choreo! ` +
-      `Twój kod zaproszenia: ${invite.code} (ważny do ${formatDate(invite.expires_at)}).`;
+    const message = t('invite.shareMessage', {
+      group: groupName,
+      code: invite.code,
+      date: formatDate(invite.expires_at, t),
+    });
     try {
       await Share.share({ message });
     } catch {
@@ -58,7 +62,11 @@ export default function InviteScreen() {
   }
 
   function describeInvite(invite: GroupInvite) {
-    return [ROLE_LABELS[invite.role], invite.label, `ważny do ${formatDate(invite.expires_at)}`]
+    return [
+      roleLabel(invite.role, t),
+      invite.label,
+      t('invite.validUntil', { date: formatDate(invite.expires_at, t) }),
+    ]
       .filter(Boolean)
       .join(' · ');
   }
@@ -66,26 +74,24 @@ export default function InviteScreen() {
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text variant="bodyMedium">
-        Wybierz rolę nowej osoby. Kod jest jednorazowy i ważny przez 7 dni.
+        {t('invite.intro')}
       </Text>
 
       <SegmentedButtons
         value={role}
         onValueChange={(value) => setRole(value as InviteRole)}
         buttons={[
-          { value: 'adult', label: 'Dorosły', icon: 'account-tie' },
-          { value: 'child', label: 'Dziecko', icon: 'human-child' },
+          { value: 'adult', label: roleLabel('adult', t), icon: 'account-tie' },
+          { value: 'child', label: roleLabel('child', t), icon: 'human-child' },
         ]}
       />
       <HelperText type="info">
-        {role === 'adult'
-          ? 'Dorosły może dodawać i edytować zadania wszystkich członków.'
-          : 'Dziecko widzi zadania grupy i zmienia tylko status swoich zadań.'}
+        {role === 'adult' ? t('invite.adultHint') : t('invite.childHint')}
       </HelperText>
 
       <TextInput
-        label="Etykieta (opcjonalnie)"
-        placeholder={role === 'adult' ? 'np. Tata, Babcia' : 'np. Córka, Syn'}
+        label={t('invite.label')}
+        placeholder={role === 'adult' ? t('invite.adultPlaceholder') : t('invite.childPlaceholder')}
         mode="outlined"
         value={label}
         onChangeText={setLabel}
@@ -93,7 +99,7 @@ export default function InviteScreen() {
       />
 
       <HelperText type="error" visible={Boolean(createInvite.error)}>
-        {createInvite.error ? toUserMessage(createInvite.error) : null}
+        {createInvite.error ? toUserMessage(createInvite.error, t) : null}
       </HelperText>
 
       <Button
@@ -103,13 +109,13 @@ export default function InviteScreen() {
         loading={createInvite.isPending}
         disabled={createInvite.isPending}
       >
-        Utwórz zaproszenie
+        {t('invite.create')}
       </Button>
 
       {createdInvite ? (
         <Card mode="contained">
           <Card.Content style={styles.codeCard}>
-            <Text variant="labelLarge">Kod zaproszenia</Text>
+            <Text variant="labelLarge">{t('invite.code')}</Text>
             <Text variant="displaySmall" selectable style={styles.code}>
               {createdInvite.code}
             </Text>
@@ -117,7 +123,7 @@ export default function InviteScreen() {
           </Card.Content>
           <Card.Actions>
             <Button icon="share-variant" onPress={() => handleShare(createdInvite)}>
-              Wyślij zaproszenie
+              {t('invite.send')}
             </Button>
           </Card.Actions>
         </Card>
@@ -125,7 +131,7 @@ export default function InviteScreen() {
 
       {invites && invites.length > 0 ? (
         <View>
-          <List.Subheader>Aktywne zaproszenia</List.Subheader>
+          <List.Subheader>{t('invite.active')}</List.Subheader>
           {invites.map((invite) => (
             <List.Item
               key={invite.id}

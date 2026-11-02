@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Card, Divider, HelperText, Text } from 'react-native-paper';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -10,12 +11,13 @@ import { assigneeIdsOf, describeAssignees } from '../../../features/tasks/assign
 import { TaskForm } from '../../../features/tasks/components/TaskForm';
 import { formatFullDate } from '../../../features/tasks/dates';
 import { useDeleteTask, useSaveTask, useTask, useTemplate } from '../../../features/tasks/hooks';
-import { STATUS_META } from '../../../features/tasks/status';
+import { statusLabel } from '../../../features/tasks/status';
 import { describeWeekdays } from '../../../features/tasks/weekdays';
 import { toUserMessage } from '../../../lib/errors';
 
 // Pełna edycja zadania (dla zarządcy i dorosłych). Status i komentarze są w okienku zadania.
 export default function TaskDetailScreen() {
+  const { t } = useTranslation();
   const { id } = useLocalSearchParams<{ id: string }>();
   const { data: membership } = useCurrentMembership();
   const groupId = membership?.group_id;
@@ -34,34 +36,34 @@ export default function TaskDetailScreen() {
   if (!task || !groupId) {
     return (
       <View style={styles.container}>
-        <Text variant="bodyLarge">To zadanie nie istnieje albo zostało usunięte.</Text>
+        <Text variant="bodyLarge">{t('task.notFound')}</Text>
       </View>
     );
   }
 
   const isManager = canManageTasks(membership?.role);
-  const lookup = memberLookup(members);
+  const lookup = memberLookup(members, t);
   const isRecurring = Boolean(task.template_id);
   const error = saveTask.error ?? deleteTask.error;
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
       <Text variant="bodyMedium">
-        Status: {STATUS_META[task.status].label} · {describeAssignees(task, lookup.nameOf)}
+        {t('task.statusLine', {
+          status: statusLabel(task.status, t),
+          assignees: describeAssignees(task, lookup.nameOf, t),
+        })}
       </Text>
 
       {isRecurring ? (
         <Card mode="contained">
           <Card.Content style={styles.recurring}>
             <Text variant="titleSmall">
-              🔁 Zadanie cykliczne{template ? `: ${describeWeekdays(template.weekdays)}` : ''}
+              {template
+                ? t('task.recurringWithDays', { days: describeWeekdays(template.weekdays, t) })
+                : t('task.recurring')}
             </Text>
-            {isManager ? (
-              <Text variant="bodySmall">
-                Zmiany poniżej dotyczą tylko tego dnia. Aby zmienić wszystkie kolejne dni, edytuj
-                powtarzanie.
-              </Text>
-            ) : null}
+            {isManager ? <Text variant="bodySmall">{t('task.recurringHint')}</Text> : null}
           </Card.Content>
           {isManager && task.template_id ? (
             <Card.Actions>
@@ -74,7 +76,7 @@ export default function TaskDetailScreen() {
                   })
                 }
               >
-                Edytuj powtarzanie
+                {t('task.editRepeat')}
               </Button>
             </Card.Actions>
           ) : null}
@@ -82,7 +84,7 @@ export default function TaskDetailScreen() {
       ) : null}
 
       <HelperText type="error" visible={Boolean(error)}>
-        {error ? toUserMessage(error) : null}
+        {error ? toUserMessage(error, t) : null}
       </HelperText>
 
       {isManager && members ? (
@@ -100,7 +102,7 @@ export default function TaskDetailScreen() {
           }}
           members={members}
           repeatMode="hidden"
-          submitLabel="Zapisz zmiany"
+          submitLabel={t('common.saveChanges')}
           loading={saveTask.isPending}
           onSubmit={(values) =>
             saveTask.mutate(
@@ -121,7 +123,9 @@ export default function TaskDetailScreen() {
         <View style={styles.details}>
           <Text variant="headlineSmall">{task.title}</Text>
           {task.description ? <Text variant="bodyLarge">{task.description}</Text> : null}
-          <Text variant="bodyMedium">Kiedy: {formatFullDate(task.due_date)}</Text>
+          <Text variant="bodyMedium">
+            {t('task.when', { date: formatFullDate(task.due_date, t) })}
+          </Text>
         </View>
       )}
 
@@ -129,20 +133,23 @@ export default function TaskDetailScreen() {
         <>
           <Divider style={styles.divider} />
           <Button mode="outlined" icon="delete-outline" onPress={() => setConfirmVisible(true)}>
-            {isRecurring ? 'Usuń z tego dnia' : 'Usuń zadanie'}
+            {isRecurring ? t('task.deleteFromDay') : t('task.delete')}
           </Button>
         </>
       ) : null}
 
       <ConfirmDialog
         visible={confirmVisible}
-        title={isRecurring ? 'Usunąć zadanie z tego dnia?' : 'Usunąć zadanie?'}
+        title={isRecurring ? t('task.confirmDeleteFromDay') : t('task.confirmDelete')}
         message={
           isRecurring
-            ? `„${task.title}” zniknie tylko z ${formatFullDate(task.due_date)}. Pozostałe dni serii zostaną bez zmian.`
-            : `Zadanie „${task.title}” zostanie usunięte na stałe. Zdobyte za nie gwiazdki zostaną.`
+            ? t('task.deleteFromDayMessage', {
+                title: task.title,
+                date: formatFullDate(task.due_date, t),
+              })
+            : t('task.deleteMessage', { title: task.title })
         }
-        confirmLabel="Usuń"
+        confirmLabel={t('common.delete')}
         destructive
         loading={deleteTask.isPending}
         onConfirm={() =>

@@ -1,5 +1,6 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, HelperText, Snackbar, Text } from 'react-native-paper';
 import { MemberAvatar } from '../../components/MemberAvatar';
@@ -20,6 +21,7 @@ const PICKER_OPTIONS: ImagePicker.ImagePickerOptions = {
 };
 
 export default function AvatarScreen() {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -33,10 +35,10 @@ export default function AvatarScreen() {
   const [saved, setSaved] = useState(false);
 
   const current = parseAvatar(me?.profile?.avatar_url);
-  const name = me ? getMemberName(me) : (session?.user.user_metadata?.display_name ?? '?');
+  const name = me ? getMemberName(me, t) : (session?.user.user_metadata?.display_name ?? '?');
   const isBusy = setAvatar.isPending || uploadAvatar.isPending;
   const error = permissionError ?? (setAvatar.error ?? uploadAvatar.error
-    ? toUserMessage(setAvatar.error ?? uploadAvatar.error)
+    ? toUserMessage(setAvatar.error ?? uploadAvatar.error, t)
     : null);
 
   function onSaved() {
@@ -49,7 +51,7 @@ export default function AvatarScreen() {
     if (source === 'camera') {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        setPermissionError('Brak dostępu do aparatu. Zezwól na niego w ustawieniach telefonu.');
+        setPermissionError(t('avatar.noCamera'));
         return;
       }
     }
@@ -77,7 +79,7 @@ export default function AvatarScreen() {
           {isBusy ? <ActivityIndicator color={theme.colors.primary} /> : null}
         </View>
 
-        <SectionCard title="Twoje zdjęcie">
+        <SectionCard title={t('avatar.yourPhoto')}>
           <View style={styles.photoButtons}>
             <Button
               mode="contained-tonal"
@@ -85,7 +87,7 @@ export default function AvatarScreen() {
               disabled={isBusy}
               onPress={() => pickPhoto('library')}
             >
-              Z galerii
+              {t('avatar.fromGallery')}
             </Button>
             {Platform.OS !== 'web' ? (
               <Button
@@ -94,23 +96,24 @@ export default function AvatarScreen() {
                 disabled={isBusy}
                 onPress={() => pickPhoto('camera')}
               >
-                Zrób zdjęcie
+                {t('avatar.takePhoto')}
               </Button>
             ) : null}
           </View>
         </SectionCard>
 
-        <SectionCard title="Albo wybierz postać">
+        <SectionCard title={t('avatar.orPreset')}>
           <View style={styles.grid}>
             {PRESET_AVATARS.map((preset) => {
               const selected = current.type === 'preset' && current.key === preset.key;
+              const label = t(`avatar.presets.${preset.key}`);
               return (
                 <Pressable
                   key={preset.key}
                   disabled={isBusy}
                   onPress={() => setAvatar.mutate(presetValue(preset.key), { onSuccess: onSaved })}
                   accessibilityRole="button"
-                  accessibilityLabel={preset.label}
+                  accessibilityLabel={label}
                   accessibilityState={{ selected }}
                   style={styles.presetCell}
                 >
@@ -122,7 +125,7 @@ export default function AvatarScreen() {
                   >
                     <MemberAvatar
                       userId={`${userId}-${preset.key}`}
-                      name={preset.label}
+                      name={label}
                       avatarUrl={presetValue(preset.key)}
                       size={56}
                     />
@@ -132,7 +135,7 @@ export default function AvatarScreen() {
                     numberOfLines={1}
                     style={{ color: theme.colors.onSurfaceVariant }}
                   >
-                    {preset.label}
+                    {label}
                   </Text>
                 </Pressable>
               );
@@ -151,13 +154,13 @@ export default function AvatarScreen() {
             disabled={isBusy}
             onPress={() => setAvatar.mutate(null, { onSuccess: onSaved })}
           >
-            Usuń awatar (pokaż inicjał)
+            {t('avatar.remove')}
           </Button>
         ) : null}
       </ScrollView>
 
       <Snackbar visible={saved} onDismiss={() => setSaved(false)} duration={2000}>
-        Awatar zapisany ✨
+        {t('avatar.saved')}
       </Snackbar>
     </View>
   );

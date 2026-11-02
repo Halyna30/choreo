@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { Platform, Pressable, StyleSheet, View } from 'react-native';
 import { Icon, Text } from 'react-native-paper';
 import { useAppTheme } from '../../../lib/theme';
-import { STATUS_META, nextStatus } from '../status';
+import { nextStatus, statusLabel } from '../status';
 import type { Task, TaskStatus } from '../types';
 
 type Props = {
@@ -21,8 +22,9 @@ export function TaskItem({
   onChangeStatus,
   onPress,
 }: Props) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
-  const meta = STATUS_META[task.status];
+  const label = statusLabel(task.status, t);
   const isDone = task.status === 'done';
   const next = nextStatus(task.status, isManager);
 
@@ -69,7 +71,10 @@ export function TaskItem({
         disabled={!canChangeStatus}
         hitSlop={10}
         accessibilityRole="button"
-        accessibilityLabel={`Status: ${meta.label}. Zmień na: ${STATUS_META[next].label}`}
+        accessibilityLabel={t('status.changeA11y', {
+          current: label,
+          next: statusLabel(next, t),
+        })}
         style={[
           styles.check,
           { backgroundColor: check.bg, borderColor: check.border },
@@ -106,7 +111,7 @@ export function TaskItem({
             numberOfLines={1}
             style={[styles.flex, { color: theme.colors.onSurfaceVariant }]}
           >
-            {subtitle ?? meta.label}
+            {subtitle ?? label}
           </Text>
         </View>
       </View>

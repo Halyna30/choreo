@@ -1,3 +1,4 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Button, Text } from 'react-native-paper';
 import { MemberAvatar } from '../../../components/MemberAvatar';
@@ -16,6 +17,7 @@ type Props = {
 
 // Karta dla rodzica: zadania dzieci czekające na zatwierdzenie (ze wszystkich dni)
 export function ApprovalsCard({ tasks, members, onApprove, onOpen }: Props) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   if (tasks.length === 0) return null;
 
@@ -32,11 +34,11 @@ export function ApprovalsCard({ tasks, members, onApprove, onOpen }: Props) {
       ]}
     >
       <Text variant="titleMedium" style={{ color: theme.colors.onSecondaryContainer }}>
-        ⏳ Do zatwierdzenia: {tasks.length}
+        {t('approvals.title', { count: tasks.length })}
       </Text>
       {tasks.map((task) => {
         const member = memberOf(task);
-        const name = member ? getMemberName(member) : 'Dziecko';
+        const name = member ? getMemberName(member, t) : t('common.child');
         return (
           <View key={task.id} style={[styles.row, { backgroundColor: theme.colors.surface }]}>
             <MemberAvatar
@@ -50,7 +52,7 @@ export function ApprovalsCard({ tasks, members, onApprove, onOpen }: Props) {
                 {task.title}
               </Text>
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                {name} · {formatDayLabel(task.due_date)}
+                {name} · {formatDayLabel(task.due_date, t)}
               </Text>
             </View>
             <Button
@@ -61,7 +63,7 @@ export function ApprovalsCard({ tasks, members, onApprove, onOpen }: Props) {
               textColor={theme.colors.onSuccess}
               onPress={() => onApprove(task)}
             >
-              OK
+              {t('approvals.approve')}
             </Button>
           </View>
         );

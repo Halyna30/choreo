@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, ProgressBar, Snackbar, Text } from 'react-native-paper';
 import { MemberAvatar } from '../../../components/MemberAvatar';
@@ -27,7 +28,7 @@ import {
   useTasksForDay,
   useUpdateTaskStatus,
 } from '../../../features/tasks/hooks';
-import { STATUS_META, countDone } from '../../../features/tasks/status';
+import { countDone, statusLabel } from '../../../features/tasks/status';
 import type { Task, TaskStatus } from '../../../features/tasks/types';
 import { toUserMessage } from '../../../lib/errors';
 import { useAppTheme } from '../../../lib/theme';
@@ -57,9 +58,10 @@ function MemberCard({
   onChangeStatus,
   onOpenTask,
 }: MemberCardProps) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const color = useMemberColor(member.user_id);
-  const name = getMemberName(member);
+  const name = getMemberName(member, t);
   const done = countDone(tasks);
 
   return (
@@ -77,13 +79,13 @@ function MemberCard({
           size={44}
         />
         <View style={styles.cardTitle}>
-          <Text variant="titleMedium">{isMe ? `${name} (Ty)` : name}</Text>
+          <Text variant="titleMedium">{isMe ? t('common.nameYou', { name }) : name}</Text>
           <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
             {tasks.length > 0
               ? done === tasks.length
-                ? 'Wszystko zrobione 🌟'
-                : `Zrobione: ${done} z ${tasks.length}`
-              : 'Brak zadań na ten dzień'}
+                ? t('group.allDone')
+                : t('group.doneOf', { done, total: tasks.length })
+              : t('group.noTasks')}
           </Text>
         </View>
         <RewardChip isChild={member.role === 'child'} stars={stars} claps={claps} />
@@ -116,6 +118,7 @@ function MemberCard({
 }
 
 export default function GroupScreen() {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -137,7 +140,7 @@ export default function GroupScreen() {
   const { data: pending } = usePendingTasks(groupId, isManager);
   const { data: balances } = usePointBalances(groupId);
   const statusMutation = useUpdateTaskStatus(groupId, isManager);
-  const lookup = memberLookup(members);
+  const lookup = memberLookup(members, t);
 
   const isLoading = membersLoading || tasksLoading;
   const allTasks = tasks ?? [];
@@ -161,6 +164,7 @@ export default function GroupScreen() {
               userId,
               nameOf: lookup.nameOf,
               isChild: lookup.isChild,
+              t,
             }),
           ),
       },
@@ -168,8 +172,10 @@ export default function GroupScreen() {
   }
 
   function subtitleOf(task: Task) {
-    const status = STATUS_META[task.status].label;
-    return task.assignment === 'single' ? status : `${status} · ${describeAssignees(task, lookup.nameOf)}`;
+    const status = statusLabel(task.status, t);
+    return task.assignment === 'single'
+      ? status
+      : `${status} · ${describeAssignees(task, lookup.nameOf, t)}`;
   }
 
   return (
@@ -186,8 +192,8 @@ export default function GroupScreen() {
         }
       >
         <ProgressHero
-          title={membership?.group.name ?? 'Grupa'}
-          subtitle={formatFullDate(date)}
+          title={membership?.group.name ?? t('group.fallbackName')}
+          subtitle={formatFullDate(date, t)}
           done={countDone(allTasks)}
           total={allTasks.length}
         />
@@ -244,7 +250,7 @@ export default function GroupScreen() {
         }}
         duration={2500}
       >
-        {statusMutation.error ? toUserMessage(statusMutation.error) : (message ?? '')}
+        {statusMutation.error ? toUserMessage(statusMutation.error, t) : (message ?? '')}
       </Snackbar>
     </View>
   );

@@ -1,6 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Icon, SegmentedButtons, Text } from 'react-native-paper';
 import { useSettings } from '../features/settings/SettingsProvider';
+import { LANGUAGE_OPTIONS } from '../i18n';
 import {
   COLOR_MODE_OPTIONS,
   THEME_OPTIONS,
@@ -40,14 +42,56 @@ function ThemePreview({ name, dark }: { name: ThemeName; dark: boolean }) {
 }
 
 export default function SettingsScreen() {
+  const { t } = useTranslation();
   const theme = useAppTheme();
-  const { settings, setThemeName, setColorMode } = useSettings();
+  const { settings, setThemeName, setColorMode, setLanguage } = useSettings();
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      <Text variant="titleLarge">Motyw</Text>
+      <Text variant="titleLarge">{t('languages.title')}</Text>
       <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
-        Wygląd zapisuje się na tym telefonie – każdy w rodzinie może mieć swój.
+        {t('languages.hint')}
+      </Text>
+      <View style={styles.languages}>
+        {LANGUAGE_OPTIONS.map((option) => {
+          const selected = settings.language === option.value;
+          return (
+            <Pressable
+              key={option.value}
+              onPress={() => setLanguage(option.value)}
+              accessibilityRole="radio"
+              accessibilityState={{ selected }}
+              style={[
+                styles.language,
+                {
+                  backgroundColor: selected ? theme.colors.primaryContainer : theme.colors.surface,
+                  borderColor: selected ? theme.colors.primary : theme.colors.outlineVariant,
+                  borderWidth: selected ? 2 : 1,
+                },
+              ]}
+            >
+              <Text style={styles.flag}>{option.flag}</Text>
+              <Text
+                variant="titleSmall"
+                numberOfLines={1}
+                style={[
+                  styles.flex,
+                  { color: selected ? theme.colors.onPrimaryContainer : theme.colors.onSurface },
+                ]}
+              >
+                {option.label}
+              </Text>
+              {selected ? <Icon source="check-circle" size={20} color={theme.colors.primary} /> : null}
+            </Pressable>
+          );
+        })}
+      </View>
+
+      <Text variant="titleLarge" style={styles.section}>
+        {t('settings.theme')}
+      </Text>
+      <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
+        {t('settings.themeHint')}
       </Text>
 
       {THEME_OPTIONS.map((option) => {
@@ -71,10 +115,10 @@ export default function SettingsScreen() {
             <View style={styles.optionText}>
               <View style={styles.optionTitle}>
                 <Icon source={option.icon} size={18} color={theme.colors.primary} />
-                <Text variant="titleMedium">{option.label}</Text>
+                <Text variant="titleMedium">{t(`settings.themes.${option.value}.label`)}</Text>
               </View>
               <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-                {option.description}
+                {t(`settings.themes.${option.value}.description`)}
               </Text>
             </View>
             <Icon
@@ -87,19 +131,19 @@ export default function SettingsScreen() {
       })}
 
       <Text variant="titleLarge" style={styles.section}>
-        Tryb
+        {t('settings.mode')}
       </Text>
       <SegmentedButtons
         value={settings.colorMode}
         onValueChange={(value) => setColorMode(value as ColorMode)}
         buttons={COLOR_MODE_OPTIONS.map((option) => ({
           value: option.value,
-          label: option.label,
+          label: t(`settings.colorModes.${option.value}`),
           icon: option.icon,
         }))}
       />
       <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
-        „Auto” dopasowuje się do ustawień telefonu.
+        {t('settings.modeHint')}
       </Text>
     </ScrollView>
   );
@@ -107,7 +151,20 @@ export default function SettingsScreen() {
 
 const styles = StyleSheet.create({
   container: { padding: 16, gap: 12 },
+  flex: { flex: 1 },
   section: { marginTop: 12 },
+  languages: { flexDirection: 'row', flexWrap: 'wrap', gap: 10 },
+  language: {
+    flexBasis: '47%',
+    flexGrow: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingVertical: 12,
+    paddingHorizontal: 12,
+    borderRadius: 16,
+  },
+  flag: { fontSize: 22, lineHeight: 28 },
   option: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -13,32 +13,17 @@ import {
 export type ThemeName = 'elegant' | 'family' | 'kids';
 export type ColorMode = 'system' | 'light' | 'dark';
 
-export const THEME_OPTIONS: { value: ThemeName; label: string; description: string; icon: string }[] =
-  [
-    {
-      value: 'elegant',
-      label: 'Elegancki',
-      description: 'Grafit i gradient, stonowany i oficjalny',
-      icon: 'briefcase-outline',
-    },
-    {
-      value: 'family',
-      label: 'Rodzinny',
-      description: 'Szałwia i oliwka, jasny i łagodny',
-      icon: 'leaf',
-    },
-    {
-      value: 'kids',
-      label: 'Kolorowy',
-      description: 'Pastelowe kolory, wesoły dla dzieci',
-      icon: 'palette-outline',
-    },
-  ];
+// Nazwy i opisy motywów są w tłumaczeniach: settings.themes / settings.colorModes
+export const THEME_OPTIONS: { value: ThemeName; icon: string }[] = [
+  { value: 'elegant', icon: 'briefcase-outline' },
+  { value: 'family', icon: 'leaf' },
+  { value: 'kids', icon: 'palette-outline' },
+];
 
-export const COLOR_MODE_OPTIONS: { value: ColorMode; label: string; icon: string }[] = [
-  { value: 'system', label: 'Auto', icon: 'theme-light-dark' },
-  { value: 'light', label: 'Jasny', icon: 'white-balance-sunny' },
-  { value: 'dark', label: 'Ciemny', icon: 'weather-night' },
+export const COLOR_MODE_OPTIONS: { value: ColorMode; icon: string }[] = [
+  { value: 'system', icon: 'theme-light-dark' },
+  { value: 'light', icon: 'white-balance-sunny' },
+  { value: 'dark', icon: 'weather-night' },
 ];
 
 // ---------- Czcionki ----------
