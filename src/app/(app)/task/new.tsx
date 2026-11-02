@@ -1,6 +1,7 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
+import { ActivityIndicator, StyleSheet } from 'react-native';
+import { KeyboardScrollView } from '../../../components/KeyboardScrollView';
 import { Text } from 'react-native-paper';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
 import { canManageTasks } from '../../../features/groups/roles';
@@ -22,9 +23,9 @@ export default function NewTaskScreen() {
 
   if (!canManageTasks(membership?.role)) {
     return (
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardScrollView contentContainerStyle={styles.container}>
         <Text variant="bodyLarge">{t('task.managersOnly')}</Text>
-      </ScrollView>
+      </KeyboardScrollView>
     );
   }
 
@@ -70,7 +71,7 @@ export default function NewTaskScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardScrollView contentContainerStyle={styles.container}>
       <TaskForm
         initialValues={{
           title: '',
@@ -89,7 +90,7 @@ export default function NewTaskScreen() {
         serverError={error ? toUserMessage(error, t) : null}
         onSubmit={handleSubmit}
       />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { KeyboardScrollView } from '../../../../components/KeyboardScrollView';
 import {
   Button,
   Divider,
@@ -116,7 +117,7 @@ function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormPro
   const name = getMemberName(member, t);
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardScrollView contentContainerStyle={styles.container}>
       <View style={styles.header}>
         <MemberAvatar
           userId={member.user_id}
@@ -208,7 +209,7 @@ function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormPro
         onConfirm={handleRemove}
         onDismiss={() => setConfirmVisible(false)}
       />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 
