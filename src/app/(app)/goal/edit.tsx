@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardScrollView } from '../../../components/KeyboardScrollView';
 import { Button, Chip, HelperText, Text, TextInput } from 'react-native-paper';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { GradientButton } from '../../../components/GradientButton';
@@ -67,7 +68,7 @@ function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardScrollView contentContainerStyle={styles.container}>
       <View style={[styles.preview, { backgroundColor: theme.colors.tertiaryContainer }]}>
         <Text style={styles.previewEmoji}>{emoji}</Text>
         <Text variant="titleLarge" style={{ color: theme.colors.onTertiaryContainer }}>
@@ -163,7 +164,7 @@ function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
         }
         onDismiss={() => setConfirmDelete(false)}
       />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

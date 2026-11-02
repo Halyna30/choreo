@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ScrollView, Share, StyleSheet, View } from 'react-native';
+import { Share, StyleSheet, View } from 'react-native';
+import { KeyboardScrollView } from '../../../components/KeyboardScrollView';
 import {
   Button,
   Card,
@@ -72,7 +73,7 @@ export default function InviteScreen() {
   }
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardScrollView contentContainerStyle={styles.container}>
       <Text variant="bodyMedium">
         {t('invite.intro')}
       </Text>
@@ -155,7 +156,7 @@ export default function InviteScreen() {
           ))}
         </View>
       ) : null}
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

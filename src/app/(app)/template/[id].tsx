@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { KeyboardScrollView } from '../../../components/KeyboardScrollView';
 import { Button, Divider, HelperText, Text } from 'react-native-paper';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
@@ -51,7 +52,7 @@ export default function TemplateScreen() {
   const error = updateTemplate.error ?? deleteTemplate.error;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardScrollView contentContainerStyle={styles.container}>
       {!template.is_active ? (
         <HelperText type="info">{t('templates.pausedInfo')}</HelperText>
       ) : null}
@@ -123,7 +124,7 @@ export default function TemplateScreen() {
         }
         onDismiss={() => setConfirmVisible(false)}
       />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

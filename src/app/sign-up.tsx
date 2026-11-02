@@ -1,7 +1,7 @@
 import { Link } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from 'react-native';
+import { KeyboardAvoidingView, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, HelperText, TextInput } from 'react-native-paper';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { BrandHeader } from '../components/BrandHeader';
@@ -68,7 +68,7 @@ export default function SignUpScreen() {
         <SettingsButton />
         <KeyboardAvoidingView
           style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+          behavior="padding"
         >
           <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
             <BrandHeader subtitle={t('auth.createAccount')} />

@@ -5,7 +5,6 @@ import { useTranslation } from 'react-i18next';
 import {
   KeyboardAvoidingView,
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -67,7 +66,7 @@ export function TaskSheet({ task, members, isManager, onChangeStatus, onDismiss 
     <Modal visible={Boolean(task)} transparent animationType="slide" onRequestClose={onDismiss}>
       <KeyboardAvoidingView
         style={styles.flex}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        behavior="padding"
       >
         <Pressable
           style={styles.backdrop}

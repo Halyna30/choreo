@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
-import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardScrollView } from '../components/KeyboardScrollView';
 import { Icon, SegmentedButtons, Text } from 'react-native-paper';
 import { useSettings } from '../features/settings/SettingsProvider';
 import { LANGUAGE_OPTIONS } from '../i18n';
@@ -47,7 +48,7 @@ export default function SettingsScreen() {
   const { settings, setThemeName, setColorMode, setLanguage } = useSettings();
 
   return (
-    <ScrollView contentContainerStyle={styles.container}>
+    <KeyboardScrollView contentContainerStyle={styles.container}>
       <Text variant="titleLarge">{t('languages.title')}</Text>
       <Text variant="bodyMedium" style={{ color: theme.colors.onSurfaceVariant }}>
         {t('languages.hint')}
@@ -145,7 +146,7 @@ export default function SettingsScreen() {
       <Text variant="bodySmall" style={{ color: theme.colors.onSurfaceVariant }}>
         {t('settings.modeHint')}
       </Text>
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

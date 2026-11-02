@@ -1,6 +1,7 @@
 import { router } from 'expo-router';
 import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ActivityIndicator, Button, List, Text } from 'react-native-paper';
 import { useCurrentMembership, useGroupMembers } from '../../features/groups/hooks';
 import { canManageTasks } from '../../features/groups/roles';
@@ -17,6 +18,7 @@ export default function TemplatesScreen() {
   const { data: templates, isLoading, error, refetch, isRefetching } = useTemplates(groupId);
   const { data: members } = useGroupMembers(groupId);
   const isManager = canManageTasks(membership?.role);
+  const insets = useSafeAreaInsets();
 
   const lookup = memberLookup(members, t);
 
@@ -24,7 +26,8 @@ export default function TemplatesScreen() {
     <FlatList
       data={templates ?? []}
       keyExtractor={(template) => template.id}
-      contentContainerStyle={styles.list}
+      // miejsce na systemowy pasek nawigacji na dole ekranu
+      contentContainerStyle={[styles.list, { paddingBottom: insets.bottom + 32 }]}
       refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />}
       ListHeaderComponent={
         isManager ? (

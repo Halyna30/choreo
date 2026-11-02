@@ -1,7 +1,8 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import { KeyboardScrollView } from '../../../components/KeyboardScrollView';
 import { Button, Card, Divider, HelperText, Text } from 'react-native-paper';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
@@ -47,7 +48,7 @@ export default function TaskDetailScreen() {
   const error = saveTask.error ?? deleteTask.error;
 
   return (
-    <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+    <KeyboardScrollView contentContainerStyle={styles.container}>
       <Text variant="bodyMedium">
         {t('task.statusLine', {
           status: statusLabel(task.status, t),
@@ -162,7 +163,7 @@ export default function TaskDetailScreen() {
         }
         onDismiss={() => setConfirmVisible(false)}
       />
-    </ScrollView>
+    </KeyboardScrollView>
   );
 }
 

@@ -1,7 +1,8 @@
 import * as ImagePicker from 'expo-image-picker';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, Pressable, StyleSheet, View } from 'react-native';
+import { KeyboardScrollView } from '../../components/KeyboardScrollView';
 import { ActivityIndicator, Button, HelperText, Snackbar, Text } from 'react-native-paper';
 import { MemberAvatar } from '../../components/MemberAvatar';
 import { SectionCard } from '../../components/SectionCard';
@@ -68,7 +69,7 @@ export default function AvatarScreen() {
 
   return (
     <View style={styles.flex}>
-      <ScrollView contentContainerStyle={styles.container}>
+      <KeyboardScrollView contentContainerStyle={styles.container}>
         <View style={styles.preview}>
           <MemberAvatar
             userId={userId}
@@ -157,7 +158,7 @@ export default function AvatarScreen() {
             {t('avatar.remove')}
           </Button>
         ) : null}
-      </ScrollView>
+      </KeyboardScrollView>
 
       <Snackbar visible={saved} onDismiss={() => setSaved(false)} duration={2000}>
         {t('avatar.saved')}
