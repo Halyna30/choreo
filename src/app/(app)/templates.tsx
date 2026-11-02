@@ -23,7 +23,7 @@ export default function TemplatesScreen() {
       data={templates ?? []}
       keyExtractor={(template) => template.id}
       contentContainerStyle={styles.list}
-      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={refetch} />}
+      refreshControl={<RefreshControl refreshing={isRefetching} onRefresh={() => void refetch()} />}
       ListHeaderComponent={
         isManager ? (
           <Button
@@ -34,7 +34,7 @@ export default function TemplatesScreen() {
           >
             Nowe zadanie
           </Button>
-        ) : null
+        ) : undefined
       }
       ListEmptyComponent={
         isLoading ? (

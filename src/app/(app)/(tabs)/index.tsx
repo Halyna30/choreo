@@ -88,7 +88,7 @@ export default function TodayScreen() {
         refreshControl={
           <RefreshControl
             refreshing={isRefetching}
-            onRefresh={refetch}
+            onRefresh={() => void refetch()}
             colors={[theme.colors.primary]}
             tintColor={theme.colors.primary}
           />
