@@ -1,29 +1,31 @@
-// Tłumaczy najczęstsze błędy Supabase Auth na komunikaty po polsku
-export function getAuthErrorMessage(error: { message: string }): string {
+import type { TFunction } from 'i18next';
+
+// Tłumaczy najczęstsze błędy Supabase Auth na komunikaty w wybranym języku
+export function getAuthErrorMessage(error: { message: string }, t: TFunction): string {
   const message = error.message.toLowerCase();
 
   if (message.includes('invalid login credentials')) {
-    return 'Nieprawidłowy e-mail lub hasło.';
+    return t('errors.invalidCredentials');
   }
   if (message.includes('user already registered')) {
-    return 'Konto z tym adresem e-mail już istnieje.';
+    return t('errors.userExists');
   }
   if (message.includes('email not confirmed')) {
-    return 'Potwierdź adres e-mail, klikając link w wiadomości.';
+    return t('errors.emailNotConfirmed');
   }
   if (message.includes('password should be at least')) {
-    return 'Hasło jest za krótkie.';
+    return t('errors.passwordTooShort');
   }
   if (message.includes('unable to validate email') || message.includes('invalid format')) {
-    return 'Nieprawidłowy adres e-mail.';
+    return t('errors.invalidEmail');
   }
   if (message.includes('rate limit') || message.includes('too many')) {
-    return 'Zbyt wiele prób. Spróbuj ponownie za chwilę.';
+    return t('errors.rateLimit');
   }
   if (message.includes('network') || message.includes('fetch')) {
-    return 'Brak połączenia z internetem.';
+    return t('errors.offline');
   }
-  return 'Coś poszło nie tak. Spróbuj ponownie.';
+  return t('errors.generic');
 }
 
 export function isValidEmail(email: string): boolean {

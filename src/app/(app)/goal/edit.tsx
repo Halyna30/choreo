@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Button, Chip, HelperText, Text, TextInput } from 'react-native-paper';
 import { ConfirmDialog } from '../../../components/ConfirmDialog';
@@ -28,6 +29,7 @@ export default function GoalEditScreen() {
 }
 
 function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const [title, setTitle] = useState(goal?.title ?? '');
   const [emoji, setEmoji] = useState(goal?.emoji ?? EMOJIS[0]);
@@ -41,17 +43,17 @@ function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
   const mutation = goal ? updateGoal : createGoal;
   const error =
     validationError ?? (mutation.error ?? deleteGoal.error
-      ? toUserMessage(mutation.error ?? deleteGoal.error)
+      ? toUserMessage(mutation.error ?? deleteGoal.error, t)
       : null);
 
   function handleSave() {
     const starsNeeded = Number.parseInt(stars, 10);
     if (!title.trim()) {
-      setValidationError('Wpisz, na co zbierasz gwiazdki.');
+      setValidationError(t('goals.enterTitle'));
       return;
     }
     if (!Number.isFinite(starsNeeded) || starsNeeded < 1 || starsNeeded > 1000) {
-      setValidationError('Liczba gwiazdek musi być od 1 do 1000.');
+      setValidationError(t('goals.starsRange'));
       return;
     }
     setValidationError(null);
@@ -69,7 +71,7 @@ function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
       <View style={[styles.preview, { backgroundColor: theme.colors.tertiaryContainer }]}>
         <Text style={styles.previewEmoji}>{emoji}</Text>
         <Text variant="titleLarge" style={{ color: theme.colors.onTertiaryContainer }}>
-          {title.trim() || 'Mój cel'}
+          {title.trim() || t('goals.myGoal')}
         </Text>
         <Text variant="bodyMedium" style={{ color: theme.colors.onTertiaryContainer }}>
           {stars || '?'} ⭐
@@ -77,15 +79,15 @@ function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
       </View>
 
       <TextInput
-        label="Na co zbierasz?"
-        placeholder="np. Wyjście do kina"
+        label={t('goals.whatFor')}
+        placeholder={t('goals.whatForPlaceholder')}
         mode="outlined"
         value={title}
         onChangeText={setTitle}
         maxLength={60}
       />
 
-      <Text variant="labelLarge">Ikona</Text>
+      <Text variant="labelLarge">{t('goals.icon')}</Text>
       <View style={styles.emojis}>
         {EMOJIS.map((item) => (
           <Pressable
@@ -107,7 +109,7 @@ function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
         ))}
       </View>
 
-      <Text variant="labelLarge">Ile gwiazdek potrzeba?</Text>
+      <Text variant="labelLarge">{t('goals.howMany')}</Text>
       <View style={styles.quick}>
         {QUICK_STARS.map((value) => (
           <Chip
@@ -121,7 +123,7 @@ function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
         ))}
       </View>
       <TextInput
-        label="Liczba gwiazdek"
+        label={t('goals.starsField')}
         mode="outlined"
         value={stars}
         onChangeText={(text) => setStars(text.replace(/[^0-9]/g, ''))}
@@ -134,20 +136,20 @@ function GoalForm({ groupId, goal }: { groupId: string; goal?: Goal }) {
       </HelperText>
 
       <GradientButton onPress={handleSave} loading={mutation.isPending} disabled={mutation.isPending}>
-        {goal ? 'Zapisz cel' : 'Dodaj cel'}
+        {goal ? t('goals.save') : t('goals.add')}
       </GradientButton>
 
       {goal ? (
         <Button mode="text" icon="delete-outline" onPress={() => setConfirmDelete(true)}>
-          Usuń cel
+          {t('goals.delete')}
         </Button>
       ) : null}
 
       <ConfirmDialog
         visible={confirmDelete}
-        title="Usunąć cel?"
-        message="Gwiazdki zostaną na koncie – możesz zbierać na coś innego."
-        confirmLabel="Usuń"
+        title={t('goals.confirmDelete')}
+        message={t('goals.deleteMessage')}
+        confirmLabel={t('common.delete')}
         destructive
         loading={deleteGoal.isPending}
         onConfirm={() =>

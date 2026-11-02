@@ -1,11 +1,16 @@
+import type { TFunction } from 'i18next';
 import type { TaskStatus } from './types';
 
-export const STATUS_META: Record<TaskStatus, { label: string; icon: string }> = {
-  todo: { label: 'Do zrobienia', icon: 'checkbox-blank-circle-outline' },
-  in_progress: { label: 'W trakcie', icon: 'progress-clock' },
-  pending: { label: 'Czeka na zatwierdzenie', icon: 'timer-sand' },
-  done: { label: 'Zrobione', icon: 'check-circle' },
+export const STATUS_ICONS: Record<TaskStatus, string> = {
+  todo: 'checkbox-blank-circle-outline',
+  in_progress: 'progress-clock',
+  pending: 'timer-sand',
+  done: 'check-circle',
 };
+
+export function statusLabel(status: TaskStatus, t: TFunction): string {
+  return t(`status.${status}`);
+}
 
 // Kliknięcie w kółko statusu przełącza go po kolei.
 // Dziecko oznacza "zrobione", a baza zamienia to na "czeka na zatwierdzenie".

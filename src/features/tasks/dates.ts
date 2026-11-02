@@ -1,3 +1,5 @@
+import type { TFunction } from 'i18next';
+
 // Daty zadań trzymamy jako tekst RRRR-MM-DD w lokalnej strefie czasowej.
 // Nie używamy toISOString(), bo zamienia czas na UTC i po północy
 // potrafi przesunąć datę o jeden dzień.
@@ -24,16 +26,20 @@ export function addDays(key: string, days: number): string {
   return toDateKey(date);
 }
 
-export function formatDayLabel(key: string): string {
+export function formatDayLabel(key: string, t: TFunction): string {
   const today = todayKey();
-  if (key === today) return 'Dziś';
-  if (key === addDays(today, 1)) return 'Jutro';
-  if (key === addDays(today, -1)) return 'Wczoraj';
-  return fromDateKey(key).toLocaleDateString('pl-PL', { weekday: 'short', day: 'numeric', month: 'short' });
+  if (key === today) return t('dates.today');
+  if (key === addDays(today, 1)) return t('dates.tomorrow');
+  if (key === addDays(today, -1)) return t('dates.yesterday');
+  return fromDateKey(key).toLocaleDateString(t('meta.dateLocale'), {
+    weekday: 'short',
+    day: 'numeric',
+    month: 'short',
+  });
 }
 
-export function formatFullDate(key: string): string {
-  return fromDateKey(key).toLocaleDateString('pl-PL', {
+export function formatFullDate(key: string, t: TFunction): string {
+  return fromDateKey(key).toLocaleDateString(t('meta.dateLocale'), {
     weekday: 'long',
     day: 'numeric',
     month: 'long',

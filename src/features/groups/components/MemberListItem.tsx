@@ -1,7 +1,8 @@
+import { useTranslation } from 'react-i18next';
 import { List } from 'react-native-paper';
 import { MemberAvatar } from '../../../components/MemberAvatar';
 import { useAppTheme } from '../../../lib/theme';
-import { ROLE_LABELS, getMemberName } from '../roles';
+import { getMemberName, roleLabel } from '../roles';
 import type { GroupMember } from '../types';
 
 type Props = {
@@ -11,13 +12,14 @@ type Props = {
 };
 
 export function MemberListItem({ member, isMe, onPress }: Props) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
-  const name = getMemberName(member);
+  const name = getMemberName(member, t);
 
   const details = [
     member.label ? member.profile?.display_name : null,
-    ROLE_LABELS[member.role],
-    isMe ? 'To Ty' : null,
+    roleLabel(member.role, t),
+    isMe ? t('common.you') : null,
   ].filter(Boolean);
 
   return (

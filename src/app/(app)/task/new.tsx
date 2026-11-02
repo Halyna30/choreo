@@ -1,4 +1,5 @@
 import { router, useLocalSearchParams } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { Text } from 'react-native-paper';
 import { useCurrentMembership, useGroupMembers } from '../../../features/groups/hooks';
@@ -11,6 +12,7 @@ import { isoWeekday, weekdaysFromForm } from '../../../features/tasks/weekdays';
 import { toUserMessage } from '../../../lib/errors';
 
 export default function NewTaskScreen() {
+  const { t } = useTranslation();
   const { date } = useLocalSearchParams<{ date?: string }>();
   const { data: membership } = useCurrentMembership();
   const groupId = membership?.group_id;
@@ -21,7 +23,7 @@ export default function NewTaskScreen() {
   if (!canManageTasks(membership?.role)) {
     return (
       <ScrollView contentContainerStyle={styles.container}>
-        <Text variant="bodyLarge">Tylko zarządca i dorośli mogą dodawać zadania.</Text>
+        <Text variant="bodyLarge">{t('task.managersOnly')}</Text>
       </ScrollView>
     );
   }
@@ -82,9 +84,9 @@ export default function NewTaskScreen() {
         }}
         members={members}
         repeatMode="optional"
-        submitLabel="Dodaj zadanie"
+        submitLabel={t('task.add')}
         loading={saveTask.isPending || createTemplate.isPending}
-        serverError={error ? toUserMessage(error) : null}
+        serverError={error ? toUserMessage(error, t) : null}
         onSubmit={handleSubmit}
       />
     </ScrollView>

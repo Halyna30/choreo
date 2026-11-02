@@ -1,5 +1,6 @@
 import { router } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, FAB, Snackbar, Text } from 'react-native-paper';
 import { ProgressHero } from '../../../components/ProgressHero';
@@ -19,12 +20,13 @@ import {
   useTasksForDay,
   useUpdateTaskStatus,
 } from '../../../features/tasks/hooks';
-import { STATUS_META, countDone } from '../../../features/tasks/status';
+import { countDone, statusLabel } from '../../../features/tasks/status';
 import type { Task, TaskStatus } from '../../../features/tasks/types';
 import { toUserMessage } from '../../../lib/errors';
 import { useAppTheme } from '../../../lib/theme';
 
 export default function TodayScreen() {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const { session } = useAuth();
   const userId = session?.user.id;
@@ -40,7 +42,7 @@ export default function TodayScreen() {
   const { data: tasks, isLoading, error, refetch, isRefetching } = useTasksForDay(groupId, date);
   const { data: pending } = usePendingTasks(groupId, isManager);
   const statusMutation = useUpdateTaskStatus(groupId, isManager);
-  const lookup = memberLookup(members);
+  const lookup = memberLookup(members, t);
 
   // Najpierw niezrobione, zrobione na końcu listy
   const myTasks = (tasks ?? [])
@@ -51,8 +53,7 @@ export default function TodayScreen() {
   const allKnown = [...(tasks ?? []), ...(pending ?? [])];
   const selectedTask = allKnown.find((task) => task.id === selectedTaskId) ?? null;
 
-  const name: string =
-    membership?.label || session?.user.user_metadata?.display_name || 'Cześć';
+  const name: string = membership?.label || session?.user.user_metadata?.display_name || '';
 
   function changeStatus(task: Task, status: TaskStatus) {
     statusMutation.mutate(
@@ -67,6 +68,7 @@ export default function TodayScreen() {
               userId,
               nameOf: lookup.nameOf,
               isChild: lookup.isChild,
+              t,
             }),
           ),
       },
@@ -74,8 +76,10 @@ export default function TodayScreen() {
   }
 
   function subtitleOf(task: Task) {
-    const status = STATUS_META[task.status].label;
-    return task.assignment === 'single' ? status : `${status} · ${describeAssignees(task, lookup.nameOf)}`;
+    const status = statusLabel(task.status, t);
+    return task.assignment === 'single'
+      ? status
+      : `${status} · ${describeAssignees(task, lookup.nameOf, t)}`;
   }
 
   return (
@@ -96,8 +100,8 @@ export default function TodayScreen() {
         ListHeaderComponent={
           <View style={styles.header}>
             <ProgressHero
-              title={`Cześć, ${name}! 👋`}
-              subtitle={formatFullDate(date)}
+              title={name ? t('today.greeting', { name }) : t('today.greetingNoName')}
+              subtitle={formatFullDate(date, t)}
               done={done}
               total={myTasks.length}
             />
@@ -115,7 +119,7 @@ export default function TodayScreen() {
                 variant="labelLarge"
                 style={[styles.sectionTitle, { color: theme.colors.onSurfaceVariant }]}
               >
-                TWOJE ZADANIA
+                {t('today.yourTasks').toUpperCase()}
               </Text>
             ) : null}
           </View>
@@ -124,17 +128,17 @@ export default function TodayScreen() {
           isLoading ? (
             <ActivityIndicator style={styles.empty} color={theme.colors.primary} />
           ) : error ? (
-            <Text style={[styles.empty, styles.emptyText]}>{toUserMessage(error)}</Text>
+            <Text style={[styles.empty, styles.emptyText]}>{toUserMessage(error, t)}</Text>
           ) : (
             <View style={styles.empty}>
               <Text style={styles.emptyEmoji}>🌤️</Text>
-              <Text variant="titleMedium">Brak zadań na ten dzień</Text>
+              <Text variant="titleMedium">{t('today.noTasks')}</Text>
               {isManager ? (
                 <Text
                   variant="bodyMedium"
                   style={[styles.emptyText, { color: theme.colors.onSurfaceVariant }]}
                 >
-                  Dodaj zadanie przyciskiem „+”.
+                  {t('today.addHint')}
                 </Text>
               ) : null}
             </View>
@@ -157,7 +161,7 @@ export default function TodayScreen() {
           icon="plus"
           style={[styles.fab, { backgroundColor: theme.colors.primary }]}
           color={theme.colors.onPrimary}
-          accessibilityLabel="Dodaj zadanie"
+          accessibilityLabel={t('today.addTask')}
           onPress={() => router.push({ pathname: '/task/new', params: { date } })}
         />
       ) : null}
@@ -178,7 +182,7 @@ export default function TodayScreen() {
         }}
         duration={2500}
       >
-        {statusMutation.error ? toUserMessage(statusMutation.error) : (message ?? '')}
+        {statusMutation.error ? toUserMessage(statusMutation.error, t) : (message ?? '')}
       </Snackbar>
     </View>
   );

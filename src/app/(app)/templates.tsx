@@ -1,4 +1,5 @@
 import { router } from 'expo-router';
+import { useTranslation } from 'react-i18next';
 import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { ActivityIndicator, Button, List, Text } from 'react-native-paper';
 import { useCurrentMembership, useGroupMembers } from '../../features/groups/hooks';
@@ -10,13 +11,14 @@ import { describeWeekdays } from '../../features/tasks/weekdays';
 import { toUserMessage } from '../../lib/errors';
 
 export default function TemplatesScreen() {
+  const { t } = useTranslation();
   const { data: membership } = useCurrentMembership();
   const groupId = membership?.group_id;
   const { data: templates, isLoading, error, refetch, isRefetching } = useTemplates(groupId);
   const { data: members } = useGroupMembers(groupId);
   const isManager = canManageTasks(membership?.role);
 
-  const lookup = memberLookup(members);
+  const lookup = memberLookup(members, t);
 
   return (
     <FlatList
@@ -32,7 +34,7 @@ export default function TemplatesScreen() {
             style={styles.add}
             onPress={() => router.push('/task/new')}
           >
-            Nowe zadanie
+            {t('templates.newTask')}
           </Button>
         ) : undefined
       }
@@ -40,12 +42,12 @@ export default function TemplatesScreen() {
         isLoading ? (
           <ActivityIndicator style={styles.empty} />
         ) : error ? (
-          <Text style={styles.emptyText}>{toUserMessage(error)}</Text>
+          <Text style={styles.emptyText}>{toUserMessage(error, t)}</Text>
         ) : (
           <View style={styles.empty}>
-            <Text variant="titleMedium">Brak zadań cyklicznych</Text>
+            <Text variant="titleMedium">{t('templates.empty')}</Text>
             <Text variant="bodyMedium" style={styles.emptyText}>
-              Przy dodawaniu zadania wybierz „Codziennie” albo „Wybrane dni”.
+              {t('templates.emptyHint')}
             </Text>
           </View>
         )
@@ -54,9 +56,9 @@ export default function TemplatesScreen() {
         <List.Item
           title={item.title}
           description={[
-            describeAssignees(item, lookup.nameOf),
-            describeWeekdays(item.weekdays),
-            item.is_active ? null : 'Wstrzymane',
+            describeAssignees(item, lookup.nameOf, t),
+            describeWeekdays(item.weekdays, t),
+            item.is_active ? null : t('templates.paused'),
           ]
             .filter(Boolean)
             .join(' · ')}

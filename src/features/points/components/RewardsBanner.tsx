@@ -1,6 +1,6 @@
+import { useTranslation } from 'react-i18next';
 import { StyleSheet, View } from 'react-native';
 import { Text } from 'react-native-paper';
-import { plural } from '../../../lib/plural';
 import { useAppTheme } from '../../../lib/theme';
 
 type Props = {
@@ -11,6 +11,7 @@ type Props = {
 
 // Duży licznik w profilu: ⭐ dla dzieci, 👏 dla dorosłych
 export function RewardsBanner({ isChild, stars, claps }: Props) {
+  const { t } = useTranslation();
   const theme = useAppTheme();
   const count = isChild ? stars : claps;
 
@@ -22,9 +23,7 @@ export function RewardsBanner({ isChild, stars, claps }: Props) {
           {count}
         </Text>
         <Text variant="bodyMedium" style={{ color: theme.colors.onTertiaryContainer }}>
-          {isChild
-            ? `${plural(count, 'gwiazdka', 'gwiazdki', 'gwiazdek')} do wydania`
-            : `${plural(count, 'klepnięcie', 'klepnięcia', 'klepnięć')} po plecach za zrobione zadania`}
+          {isChild ? t('rewards.starsToSpend', { count }) : t('rewards.claps', { count })}
         </Text>
       </View>
     </View>

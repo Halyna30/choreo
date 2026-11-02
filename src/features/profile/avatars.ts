@@ -1,20 +1,25 @@
-// Gotowe awatary – zapisywane w profiles.avatar_url jako "preset:<key>"
-export const PRESET_AVATARS: { key: string; emoji: string; label: string }[] = [
-  { key: 'baby', emoji: '👶', label: 'Maluch' },
-  { key: 'girl', emoji: '👧', label: 'Dziewczynka' },
-  { key: 'boy', emoji: '👦', label: 'Chłopiec' },
-  { key: 'teen', emoji: '🧑', label: 'Nastolatek' },
-  { key: 'woman', emoji: '👩', label: 'Kobieta' },
-  { key: 'man', emoji: '👨', label: 'Mężczyzna' },
-  { key: 'grandma', emoji: '👵', label: 'Babcia' },
-  { key: 'grandpa', emoji: '👴', label: 'Dziadek' },
-  { key: 'dog', emoji: '🐶', label: 'Piesek' },
-  { key: 'cat', emoji: '🐱', label: 'Kotek' },
-  { key: 'rabbit', emoji: '🐰', label: 'Króliczek' },
-  { key: 'fox', emoji: '🦊', label: 'Lis' },
-  { key: 'bear', emoji: '🐻', label: 'Miś' },
-  { key: 'panda', emoji: '🐼', label: 'Panda' },
-  { key: 'unicorn', emoji: '🦄', label: 'Jednorożec' },
+import type { pl } from '../../i18n/locales/pl';
+
+export type PresetKey = keyof typeof pl.avatar.presets;
+
+// Gotowe awatary – zapisywane w profiles.avatar_url jako "preset:<key>".
+// Nazwy postaci są w tłumaczeniach: avatar.presets.<key>
+export const PRESET_AVATARS: { key: PresetKey; emoji: string }[] = [
+  { key: 'baby', emoji: '👶' },
+  { key: 'girl', emoji: '👧' },
+  { key: 'boy', emoji: '👦' },
+  { key: 'teen', emoji: '🧑' },
+  { key: 'woman', emoji: '👩' },
+  { key: 'man', emoji: '👨' },
+  { key: 'grandma', emoji: '👵' },
+  { key: 'grandpa', emoji: '👴' },
+  { key: 'dog', emoji: '🐶' },
+  { key: 'cat', emoji: '🐱' },
+  { key: 'rabbit', emoji: '🐰' },
+  { key: 'fox', emoji: '🦊' },
+  { key: 'bear', emoji: '🐻' },
+  { key: 'panda', emoji: '🐼' },
+  { key: 'unicorn', emoji: '🦄' },
 ];
 
 const PRESET_PREFIX = 'preset:';

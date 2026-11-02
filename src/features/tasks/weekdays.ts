@@ -1,19 +1,26 @@
+import type { TFunction } from 'i18next';
 import { fromDateKey } from './dates';
 import type { RepeatMode, TaskFormValues } from './types';
 
-export const ALL_WEEKDAYS = [1, 2, 3, 4, 5, 6, 7];
-
-export const WEEKDAYS: { value: number; short: string }[] = [
-  { value: 1, short: 'Pn' },
-  { value: 2, short: 'Wt' },
-  { value: 3, short: 'Śr' },
-  { value: 4, short: 'Cz' },
-  { value: 5, short: 'Pt' },
-  { value: 6, short: 'So' },
-  { value: 7, short: 'Nd' },
-];
-
 // Dzień tygodnia w standardzie ISO (poniedziałek = 1, niedziela = 7)
+export type Weekday = 1 | 2 | 3 | 4 | 5 | 6 | 7;
+
+export const ALL_WEEKDAYS: Weekday[] = [1, 2, 3, 4, 5, 6, 7];
+
+const WEEKDAY_KEYS = {
+  1: 'mon',
+  2: 'tue',
+  3: 'wed',
+  4: 'thu',
+  5: 'fri',
+  6: 'sat',
+  7: 'sun',
+} as const satisfies Record<Weekday, string>;
+
+export function weekdayShort(day: number, t: TFunction): string {
+  return t(`weekdays.short.${WEEKDAY_KEYS[day as Weekday]}`);
+}
+
 export function isoWeekday(dateKey: string): number {
   const day = fromDateKey(dateKey).getDay();
   return day === 0 ? 7 : day;
@@ -23,14 +30,12 @@ function sameDays(a: number[], b: number[]): boolean {
   return a.length === b.length && a.every((day) => b.includes(day));
 }
 
-export function describeWeekdays(weekdays: number[]): string {
+export function describeWeekdays(weekdays: number[], t: TFunction): string {
   const sorted = [...weekdays].sort((a, b) => a - b);
-  if (sorted.length === 7) return 'Codziennie';
-  if (sameDays(sorted, [1, 2, 3, 4, 5])) return 'W dni robocze';
-  if (sameDays(sorted, [6, 7])) return 'W weekendy';
-  return sorted
-    .map((day) => WEEKDAYS.find((weekday) => weekday.value === day)?.short)
-    .join(', ');
+  if (sorted.length === 7) return t('weekdays.daily');
+  if (sameDays(sorted, [1, 2, 3, 4, 5])) return t('weekdays.workdays');
+  if (sameDays(sorted, [6, 7])) return t('weekdays.weekends');
+  return sorted.map((day) => weekdayShort(day, t)).join(', ');
 }
 
 // Wartości formularza -> dni tygodnia zapisywane w szablonie

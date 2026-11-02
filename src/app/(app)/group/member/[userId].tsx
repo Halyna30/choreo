@@ -1,5 +1,6 @@
 import { router, useLocalSearchParams } from 'expo-router';
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ActivityIndicator, ScrollView, StyleSheet, View } from 'react-native';
 import {
   Button,
@@ -18,7 +19,7 @@ import {
   useRemoveMember,
   useUpdateMember,
 } from '../../../../features/groups/hooks';
-import { ROLE_LABELS, canManageTasks, getMemberName } from '../../../../features/groups/roles';
+import { canManageTasks, getMemberName, roleLabel } from '../../../../features/groups/roles';
 import { GoalsSection } from '../../../../features/points/components/GoalsSection';
 import { RewardsBanner } from '../../../../features/points/components/RewardsBanner';
 import { usePointBalances } from '../../../../features/points/hooks';
@@ -26,6 +27,7 @@ import type { GroupMember, InviteRole } from '../../../../features/groups/types'
 import { toUserMessage } from '../../../../lib/errors';
 
 export default function MemberScreen() {
+  const { t } = useTranslation();
   const { userId } = useLocalSearchParams<{ userId: string }>();
   const { session } = useAuth();
   const { data: membership } = useCurrentMembership();
@@ -40,7 +42,7 @@ export default function MemberScreen() {
   if (!member || !membership) {
     return (
       <View style={styles.container}>
-        <Text variant="bodyLarge">Nie znaleziono członka grupy.</Text>
+        <Text variant="bodyLarge">{t('member.notFound')}</Text>
       </View>
     );
   }
@@ -67,6 +69,7 @@ type MemberFormProps = {
 };
 
 function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormProps) {
+  const { t } = useTranslation();
   const { data: balances } = usePointBalances(groupId);
   const balance = balances?.get(member.user_id);
   const isChild = member.role === 'child';
@@ -110,7 +113,7 @@ function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormPro
     );
   }
 
-  const name = getMemberName(member);
+  const name = getMemberName(member, t);
 
   return (
     <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
@@ -123,7 +126,7 @@ function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormPro
         />
         <Text variant="titleLarge">{name}</Text>
         <Text variant="bodyMedium">
-          {member.profile?.display_name} · {ROLE_LABELS[member.role]}
+          {member.profile?.display_name} · {roleLabel(member.role, t)}
         </Text>
       </View>
 
@@ -144,8 +147,8 @@ function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormPro
 
       {canEditLabel ? (
         <TextInput
-          label="Etykieta w grupie"
-          placeholder="np. Mama, Tata, Babcia"
+          label={t('member.label')}
+          placeholder={t('member.labelPlaceholder')}
           mode="outlined"
           value={label}
           onChangeText={setLabel}
@@ -155,24 +158,24 @@ function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormPro
 
       {canEditRole ? (
         <View style={styles.section}>
-          <Text variant="labelLarge">Rola</Text>
+          <Text variant="labelLarge">{t('member.role')}</Text>
           <SegmentedButtons
             value={role}
             onValueChange={(value) => setRole(value as InviteRole)}
             buttons={[
-              { value: 'adult', label: 'Dorosły', icon: 'account-tie' },
-              { value: 'child', label: 'Dziecko', icon: 'human-child' },
+              { value: 'adult', label: roleLabel('adult', t), icon: 'account-tie' },
+              { value: 'child', label: roleLabel('child', t), icon: 'human-child' },
             ]}
           />
         </View>
       ) : null}
 
       {memberIsOwner ? (
-        <HelperText type="info">Zarządca grupy ma zawsze pełne uprawnienia.</HelperText>
+        <HelperText type="info">{t('member.ownerInfo')}</HelperText>
       ) : null}
 
       <HelperText type="error" visible={Boolean(error)}>
-        {error ? toUserMessage(error) : null}
+        {error ? toUserMessage(error, t) : null}
       </HelperText>
 
       {canEditLabel ? (
@@ -182,7 +185,7 @@ function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormPro
           loading={updateMember.isPending}
           disabled={updateMember.isPending}
         >
-          Zapisz zmiany
+          {t('common.saveChanges')}
         </Button>
       ) : null}
 
@@ -190,20 +193,16 @@ function MemberForm({ member, groupId, isMe, isOwner, isManager }: MemberFormPro
         <>
           <Divider style={styles.divider} />
           <Button mode="outlined" icon="account-remove" onPress={() => setConfirmVisible(true)}>
-            {canLeave ? 'Opuść grupę' : 'Usuń z grupy'}
+            {canLeave ? t('member.leave') : t('member.remove')}
           </Button>
         </>
       ) : null}
 
       <ConfirmDialog
         visible={confirmVisible}
-        title={canLeave ? 'Opuścić grupę?' : `Usunąć ${name}?`}
-        message={
-          canLeave
-            ? 'Stracisz dostęp do zadań tej grupy. Wrócić możesz tylko z nowym kodem zaproszenia.'
-            : 'Ta osoba straci dostęp do grupy, a jej zadania zostaną usunięte.'
-        }
-        confirmLabel={canLeave ? 'Opuść' : 'Usuń'}
+        title={canLeave ? t('member.confirmLeave') : t('member.confirmRemove', { name })}
+        message={canLeave ? t('member.leaveMessage') : t('member.removeMessage')}
+        confirmLabel={canLeave ? t('member.leaveConfirm') : t('common.delete')}
         destructive
         loading={removeMember.isPending}
         onConfirm={handleRemove}

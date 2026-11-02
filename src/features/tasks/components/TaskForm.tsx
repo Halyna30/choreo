@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { Chip, HelperText, SegmentedButtons, Text, TextInput } from 'react-native-paper';
 import { GradientButton } from '../../../components/GradientButton';
@@ -7,7 +8,7 @@ import { getMemberName } from '../../groups/roles';
 import type { GroupMember } from '../../groups/types';
 import { formatFullDate } from '../dates';
 import type { RepeatMode, TaskAssignment, TaskFormValues } from '../types';
-import { WEEKDAYS, describeWeekdays, weekdaysFromForm } from '../weekdays';
+import { ALL_WEEKDAYS, describeWeekdays, weekdayShort, weekdaysFromForm } from '../weekdays';
 import { DaySwitcher } from './DaySwitcher';
 
 type Props = {
@@ -21,16 +22,16 @@ type Props = {
   onSubmit: (values: TaskFormValues) => void;
 };
 
-const REPEAT_BUTTONS: { value: RepeatMode; label: string; icon: string }[] = [
-  { value: 'none', label: 'Raz', icon: 'numeric-1-circle-outline' },
-  { value: 'daily', label: 'Codziennie', icon: 'repeat' },
-  { value: 'weekdays', label: 'Wybrane dni', icon: 'calendar-week' },
-];
+const REPEAT_BUTTONS = [
+  { value: 'none', label: 'taskForm.repeatOnce', icon: 'numeric-1-circle-outline' },
+  { value: 'daily', label: 'taskForm.repeatDaily', icon: 'repeat' },
+  { value: 'weekdays', label: 'taskForm.repeatWeekdays', icon: 'calendar-week' },
+] as const satisfies readonly { value: RepeatMode; label: string; icon: string }[];
 
-const MULTI_HINTS: Record<Exclude<TaskAssignment, 'single'>, string> = {
-  anyone: 'Zadanie przejmuje osoba, która pierwsza je zacznie. Nagrodę dostaje ona.',
-  together: 'Jedno wspólne zadanie – po zrobieniu nagrodę dostaje każdy uczestnik.',
-};
+const MULTI_HINTS = {
+  anyone: 'taskForm.anyoneHint',
+  together: 'taskForm.togetherHint',
+} as const satisfies Record<Exclude<TaskAssignment, 'single'>, string>;
 
 export function TaskForm({
   initialValues,
@@ -41,6 +42,7 @@ export function TaskForm({
   repeatMode = 'hidden',
   onSubmit,
 }: Props) {
+  const { t } = useTranslation();
   const [values, setValues] = useState<TaskFormValues>(initialValues);
   const [validationError, setValidationError] = useState<string | null>(null);
 
@@ -78,15 +80,15 @@ export function TaskForm({
 
   function handleSubmit() {
     if (!values.title.trim()) {
-      setValidationError('Wpisz nazwę zadania.');
+      setValidationError(t('taskForm.enterTitle'));
       return;
     }
     if (values.assigneeIds.length === 0) {
-      setValidationError('Wybierz, dla kogo jest zadanie.');
+      setValidationError(t('taskForm.chooseAssignee'));
       return;
     }
     if (values.repeat === 'weekdays' && values.weekdays.length === 0) {
-      setValidationError('Wybierz co najmniej jeden dzień tygodnia.');
+      setValidationError(t('taskForm.chooseWeekday'));
       return;
     }
     setValidationError(null);
@@ -94,23 +96,22 @@ export function TaskForm({
   }
 
   const error = validationError ?? serverError ?? null;
-  const repeatButtons =
-    repeatMode === 'required'
-      ? REPEAT_BUTTONS.filter((button) => button.value !== 'none')
-      : REPEAT_BUTTONS;
+  const repeatButtons = REPEAT_BUTTONS.filter(
+    (button) => repeatMode !== 'required' || button.value !== 'none',
+  ).map((button) => ({ ...button, label: t(button.label) }));
 
   return (
     <View style={styles.form}>
       <TextInput
-        label="Zadanie"
-        placeholder="np. Wynieść śmieci"
+        label={t('taskForm.title')}
+        placeholder={t('taskForm.titlePlaceholder')}
         mode="outlined"
         value={values.title}
         onChangeText={(text) => update('title', text)}
         maxLength={200}
       />
       <TextInput
-        label="Opis (opcjonalnie)"
+        label={t('taskForm.description')}
         mode="outlined"
         value={values.description}
         onChangeText={(text) => update('description', text)}
@@ -119,12 +120,12 @@ export function TaskForm({
       />
 
       <Text variant="labelLarge" style={styles.label}>
-        Dla kogo (możesz wybrać kilka osób)
+        {t('taskForm.forWhom')}
       </Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.chips}>
         {members.map((member) => {
           const selected = values.assigneeIds.includes(member.user_id);
-          const name = getMemberName(member);
+          const name = getMemberName(member, t);
           return (
             <Chip
               key={member.user_id}
@@ -153,12 +154,12 @@ export function TaskForm({
             value={values.assignment}
             onValueChange={(value) => update('assignment', value as TaskAssignment)}
             buttons={[
-              { value: 'anyone', label: 'Ktokolwiek', icon: 'account-question' },
-              { value: 'together', label: 'Wszyscy razem', icon: 'account-group' },
+              { value: 'anyone', label: t('taskForm.anyone'), icon: 'account-question' },
+              { value: 'together', label: t('taskForm.together'), icon: 'account-group' },
             ]}
           />
           {values.assignment !== 'single' ? (
-            <HelperText type="info">{MULTI_HINTS[values.assignment]}</HelperText>
+            <HelperText type="info">{t(MULTI_HINTS[values.assignment])}</HelperText>
           ) : null}
         </>
       ) : null}
@@ -166,7 +167,7 @@ export function TaskForm({
       {repeatMode !== 'hidden' ? (
         <>
           <Text variant="labelLarge" style={styles.label}>
-            Powtarzanie
+            {t('taskForm.repeat')}
           </Text>
           <SegmentedButtons
             value={values.repeat}
@@ -175,33 +176,35 @@ export function TaskForm({
           />
           {values.repeat === 'weekdays' ? (
             <View style={styles.weekdays}>
-              {WEEKDAYS.map((day) => (
+              {ALL_WEEKDAYS.map((day) => (
                 <Chip
-                  key={day.value}
-                  selected={values.weekdays.includes(day.value)}
-                  mode={values.weekdays.includes(day.value) ? 'flat' : 'outlined'}
-                  onPress={() => toggleWeekday(day.value)}
+                  key={day}
+                  selected={values.weekdays.includes(day)}
+                  mode={values.weekdays.includes(day) ? 'flat' : 'outlined'}
+                  onPress={() => toggleWeekday(day)}
                   compact
                 >
-                  {day.short}
+                  {weekdayShort(day, t)}
                 </Chip>
               ))}
             </View>
           ) : null}
           {isRepeating && (values.repeat === 'daily' || values.weekdays.length > 0) ? (
             <HelperText type="info">
-              🔁 {describeWeekdays(weekdaysFromForm(values))}. Każdy dzień ma osobny status.
+              {t('taskForm.repeatSummary', {
+                days: describeWeekdays(weekdaysFromForm(values), t),
+              })}
             </HelperText>
           ) : null}
         </>
       ) : null}
 
       <Text variant="labelLarge" style={styles.label}>
-        {isRepeating ? 'Od kiedy' : 'Kiedy'}
+        {isRepeating ? t('taskForm.startDate') : t('taskForm.date')}
       </Text>
       <DaySwitcher value={values.dueDate} onChange={(date) => update('dueDate', date)} />
       <Text variant="bodySmall" style={styles.fullDate}>
-        {formatFullDate(values.dueDate)}
+        {formatFullDate(values.dueDate, t)}
       </Text>
 
       <HelperText type="error" visible={Boolean(error)}>
