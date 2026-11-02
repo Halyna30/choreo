@@ -31,7 +31,8 @@
         "expo-image-picker",
         {
           "photosPermission": "Choreo potrzebuje dostępu do zdjęć, aby ustawić Twój awatar.",
-          "cameraPermission": "Choreo potrzebuje aparatu, aby zrobić zdjęcie do awatara."
+          "cameraPermission": "Choreo potrzebuje aparatu, aby zrobić zdjęcie do awatara.",
+          "microphonePermission": false
         }
       ],
       [
@@ -48,6 +49,17 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "1165e6d6-1298-4530-93a4-8b24dae28c21"
+      }
+    },
+    "owner": "halyna35"
   }
 }
